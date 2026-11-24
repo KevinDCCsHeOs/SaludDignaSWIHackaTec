@@ -52,11 +52,7 @@ export type NivelEscalamiento = (typeof NIVELES_ESCALAMIENTO)[number];
 /**
  * Estatus operativo de una clínica (#31).
  */
-export const ESTATUS_CLINICA = [
-  'operando',
-  'retraso',
-  'fuera_de_servicio',
-] as const;
+export const ESTATUS_CLINICA = ['operando', 'retraso', 'fuera_de_servicio'] as const;
 
 export type EstatusClinica = (typeof ESTATUS_CLINICA)[number];
 

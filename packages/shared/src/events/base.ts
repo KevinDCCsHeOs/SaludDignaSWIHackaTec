@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  CANALES_ATENCION,
-  TIPOS_ACTOR,
-} from '../enums/canales-e-identidad';
+import { CANALES_ATENCION, TIPOS_ACTOR } from '../enums/canales-e-identidad';
 
 /**
  * Expresión regular obligatoria para la convención de nombres `dominio.accion`.

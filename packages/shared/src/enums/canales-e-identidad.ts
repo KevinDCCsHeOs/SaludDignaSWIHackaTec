@@ -2,13 +2,7 @@
  * Canales de atención soportados por la plataforma omnicanal.
  * Alineado con `CanalAtencion` en `apps/api/prisma/schema.prisma`.
  */
-export const CANALES_ATENCION = [
-  'web',
-  'app',
-  'whatsapp',
-  'call_center',
-  'email',
-] as const;
+export const CANALES_ATENCION = ['web', 'app', 'whatsapp', 'call_center', 'email'] as const;
 
 export type CanalAtencion = (typeof CANALES_ATENCION)[number];
 
@@ -62,5 +56,4 @@ export const ESTADOS_RESOLUCION_IDENTIDAD = [
   'ambiguo',
 ] as const;
 
-export type EstadoResolucionIdentidad =
-  (typeof ESTADOS_RESOLUCION_IDENTIDAD)[number];
+export type EstadoResolucionIdentidad = (typeof ESTADOS_RESOLUCION_IDENTIDAD)[number];

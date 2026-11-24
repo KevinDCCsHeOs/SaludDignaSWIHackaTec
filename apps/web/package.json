@@ -1,0 +1,17 @@
+{
+  "name": "@salud-digna/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portal web del paciente, consola del asesor, vista médica, Patient Journey y KPIs",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "npm run build && node dist/main.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@salud-digna/shared": "*",
+    "@salud-digna/ui": "*"
+  }
+}

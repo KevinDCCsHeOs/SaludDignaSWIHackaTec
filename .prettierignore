@@ -1,0 +1,16 @@
+node_modules
+dist
+build
+.next
+.expo
+coverage
+package-lock.json
+docs/arquitectura/diagramas/*.svg
+docs/arquitectura/diagramas/*.png
+docs/modelo-datos/diagramas/*.svg
+docs/modelo-datos/diagramas/*.png
+apps/api/prisma/migrations/**/*.sql
+apps/api/prisma/schema.prisma
+*.md
+.agents
+skills-lock.json

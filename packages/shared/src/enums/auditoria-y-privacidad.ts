@@ -30,12 +30,7 @@ export type TipoConsentimiento = (typeof TIPOS_CONSENTIMIENTO)[number];
 /**
  * Clasificación de sensibilidad de campos en el modelo de datos (LFPDPPP).
  */
-export const NIVELES_SENSIBILIDAD = [
-  'publico',
-  'interno',
-  'personal',
-  'sensible_cifrado',
-] as const;
+export const NIVELES_SENSIBILIDAD = ['publico', 'interno', 'personal', 'sensible_cifrado'] as const;
 
 export type NivelSensibilidad = (typeof NIVELES_SENSIBILIDAD)[number];
 

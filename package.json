@@ -1,0 +1,39 @@
+{
+  "name": "salud-digna-omnicanal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo de Orquestación Omnicanal de Atención — Salud Digna x TecNM HackaTec",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build --workspace=@salud-digna/shared && npm run build --workspace=@salud-digna/ui && npm run build --workspace=@salud-digna/api && npm run build --workspace=@salud-digna/whatsapp-bot && npm run build --workspace=@salud-digna/web && npm run build --workspace=@salud-digna/mobile",
+    "typecheck": "npm run build --workspace=@salud-digna/shared && npm run build --workspace=@salud-digna/ui && npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run build && npm run test --workspaces --if-present",
+    "seed": "node scripts/seed.mjs",
+    "docs:eventos": "npm run build --workspace=@salud-digna/shared && npm run docs:eventos --workspace=@salud-digna/shared",
+    "docs:eventos:check": "npm run build --workspace=@salud-digna/shared && npm run docs:eventos:check --workspace=@salud-digna/shared",
+    "prisma:validate": "npm run prisma:validate --workspace=@salud-digna/api",
+    "prisma:format:check": "npm run prisma:format:check --workspace=@salud-digna/api",
+    "prisma:generate": "npm run prisma:generate --workspace=@salud-digna/api",
+    "prisma:migrate:dev": "npm run prisma:migrate:dev --workspace=@salud-digna/api",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace=@salud-digna/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "@types/node": "^22.15.21",
+    "eslint": "^9.27.0",
+    "globals": "^16.1.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.1"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@salud-digna/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aplicación móvil del paciente (Expo / React Native, #22)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@salud-digna/shared": "*",
+    "@salud-digna/ui": "*"
+  }
+}

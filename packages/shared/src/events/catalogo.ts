@@ -9,12 +9,7 @@ import {
   TIPOS_TICKET,
   TIPOS_TRAMITE,
 } from '../enums';
-import {
-  CanalAtencionSchema,
-  ConsumidorEvento,
-  EmisorEvento,
-  EventoBaseSchema,
-} from './base';
+import { CanalAtencionSchema, ConsumidorEvento, EmisorEvento, EventoBaseSchema } from './base';
 
 // ----------------------------------------------------------------------------
 // Esquemas de `datos` por evento (`dominio.accion`, versión 1)
@@ -41,7 +36,13 @@ const IdentidadVinculadaDatosSchema = z.object({
 });
 
 const IdentidadVerificadaDatosSchema = z.object({
-  metodo: z.enum(['otp_whatsapp', 'otp_email', 'otp_simulado', 'preguntas_call_center', 'login_password']),
+  metodo: z.enum([
+    'otp_whatsapp',
+    'otp_email',
+    'otp_simulado',
+    'preguntas_call_center',
+    'login_password',
+  ]),
   canalVerificado: CanalAtencionSchema,
   sesionValidaHasta: z.string().datetime({ offset: true }),
 });
@@ -154,10 +155,11 @@ const ResultadoLiberadoDatosSchema = z.object({
 // Esquemas completos por evento (sobre común + tipo literal + versión + datos)
 // ----------------------------------------------------------------------------
 
-function crearEsquemaEvento<
-  TTipo extends string,
-  TDatos extends z.ZodTypeAny,
->(tipo: TTipo, version: 1, datosSchema: TDatos) {
+function crearEsquemaEvento<TTipo extends string, TDatos extends z.ZodTypeAny>(
+  tipo: TTipo,
+  version: 1,
+  datosSchema: TDatos,
+) {
   return EventoBaseSchema.extend({
     tipo: z.literal(tipo),
     version: z.literal(version),
@@ -283,9 +285,7 @@ export const EventoOmnicanalSchema = z.discriminatedUnion('tipo', [
 export type EventoOmnicanal = z.infer<typeof EventoOmnicanalSchema>;
 export type TipoEventoOmnicanal = EventoOmnicanal['tipo'];
 
-export interface DefinicionEventoCatalogo<
-  TEvento extends EventoOmnicanal = EventoOmnicanal,
-> {
+export interface DefinicionEventoCatalogo<TEvento extends EventoOmnicanal = EventoOmnicanal> {
   tipo: TEvento['tipo'];
   version: number;
   dominio: string;
@@ -379,7 +379,8 @@ export const CATALOGO_EVENTOS: readonly DefinicionEventoCatalogo[] = [
     tipo: 'identidad.verificada',
     version: 1,
     dominio: 'identidad',
-    descripcion: 'El paciente supera OTP o preguntas de seguridad; se habilita revelar su contexto.',
+    descripcion:
+      'El paciente supera OTP o preguntas de seguridad; se habilita revelar su contexto.',
     emisor: 'otp',
     consumidores: ['timeline', 'realtime', 'auditoria'],
     schema: IdentidadVerificadaEventoSchema,
@@ -477,7 +478,8 @@ export const CATALOGO_EVENTOS: readonly DefinicionEventoCatalogo[] = [
     tipo: 'clinica.seleccionada',
     version: 1,
     dominio: 'clinica',
-    descripcion: 'El paciente selecciona clínica y el contexto persiste el avance antes de confirmar.',
+    descripcion:
+      'El paciente selecciona clínica y el contexto persiste el avance antes de confirmar.',
     emisor: 'contexto',
     consumidores: ['timeline', 'realtime', 'metricas'],
     schema: ClinicaSeleccionadaEventoSchema,
@@ -656,7 +658,8 @@ export const CATALOGO_EVENTOS: readonly DefinicionEventoCatalogo[] = [
     tipo: 'ticket.escalado',
     version: 1,
     dominio: 'ticket',
-    descripcion: 'Un ticket sube de nivel en la jerarquía del Contact Center (IA → asesor → asesor pro).',
+    descripcion:
+      'Un ticket sube de nivel en la jerarquía del Contact Center (IA → asesor → asesor pro).',
     emisor: 'tickets',
     consumidores: ['timeline', 'realtime', 'notificaciones', 'metricas', 'auditoria'],
     schema: TicketEscaladoEventoSchema,
@@ -734,7 +737,8 @@ export const CATALOGO_EVENTOS: readonly DefinicionEventoCatalogo[] = [
     tipo: 'resultado.liberado',
     version: 1,
     dominio: 'resultado',
-    descripcion: 'Tras revisión técnica y validación médica, el resultado queda visible para el paciente.',
+    descripcion:
+      'Tras revisión técnica y validación médica, el resultado queda visible para el paciente.',
     emisor: 'resultados',
     consumidores: ['timeline', 'realtime', 'notificaciones', 'metricas', 'auditoria'],
     schema: ResultadoLiberadoEventoSchema,

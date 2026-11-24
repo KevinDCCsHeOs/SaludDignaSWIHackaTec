@@ -94,5 +94,7 @@ if (checkMode) {
   console.log(`OK: docs/eventos.md sincronizado (${CATALOGO_EVENTOS.length} eventos validados).`);
 } else {
   fs.writeFileSync(targetFile, contenido, 'utf8');
-  console.log(`Generado ${path.relative(repoRoot, targetFile)} con ${CATALOGO_EVENTOS.length} eventos.`);
+  console.log(
+    `Generado ${path.relative(repoRoot, targetFile)} con ${CATALOGO_EVENTOS.length} eventos.`,
+  );
 }

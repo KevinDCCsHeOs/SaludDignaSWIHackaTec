@@ -1,0 +1,10 @@
+{
+  "recuperacion": {
+    "opcionMenu": "No puedo entrar a mi cuenta",
+    "pedirOtp": "Para proteger tu cuenta, enviamos un código de verificación de 6 dígitos a tu WhatsApp. Compártelo aquí para continuar.",
+    "enlaceEnviado": "Tu identidad fue verificada. Ya enviamos un enlace seguro de un solo uso (válido por 30 minutos) para que restablezcas tu contraseña.",
+    "casoAmbiguo": "Encontramos más de un perfil asociado a este número. Te conectamos con un asesor para ayudarte de forma segura.",
+    "noEncontrado": "No encontramos una cuenta vinculada a este número. Si deseas, podemos iniciar tu registro o conectarte con un asesor.",
+    "errorOtp": "El código no es válido o expiró. Puedes escribir \"No puedo entrar a mi cuenta\" nuevamente para solicitar uno nuevo."
+  }
+}

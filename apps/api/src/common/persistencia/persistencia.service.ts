@@ -33,6 +33,12 @@ function describirError(error: unknown): string {
   return error instanceof Error ? error.name : 'error desconocido';
 }
 
+/** El dominio del trámite solo distingue cita agendada, confirmada o cancelada. */
+function estatusCitaDeDominio(estatus: string): CitaTramiteRegistro['estatus'] {
+  if (estatus === 'confirmada' || estatus === 'cancelada') return estatus;
+  return 'agendada';
+}
+
 function esErrorDeLlaveForanea(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003';
 }
@@ -100,7 +106,7 @@ export class PersistenciaService {
         });
 
         for (const paso of t.pasos) {
-          const datosPaso = paso.datos === null ? Prisma.JsonNull : comoJson(paso.datos);
+          const datosPaso = paso.datos ? comoJson(paso.datos) : Prisma.JsonNull;
           await tx.pasoTramite.upsert({
             where: { tramiteId_orden: { tramiteId: t.id, orden: paso.orden } },
             create: {
@@ -167,20 +173,18 @@ export class PersistenciaService {
 
       return filas.map((f): TramiteRegistro => {
         const ultimaCita = f.citas[0];
-        const cita: CitaTramiteRegistro | null = ultimaCita
-          ? {
-              id: ultimaCita.id,
-              clinicaId: ultimaCita.clinicaId,
-              fechaHora: ultimaCita.fechaHora.toISOString(),
-              estatus:
-                ultimaCita.estatus === 'confirmada' || ultimaCita.estatus === 'cancelada'
-                  ? ultimaCita.estatus
-                  : 'agendada',
-              canalAgendamiento: ultimaCita.canalAgendamiento,
-              codigoConfirmacion: ultimaCita.codigoConfirmacion ?? '',
-              confirmadaEn: aIso(ultimaCita.confirmadaEn),
-            }
-          : null;
+        let cita: CitaTramiteRegistro | null = null;
+        if (ultimaCita) {
+          cita = {
+            id: ultimaCita.id,
+            clinicaId: ultimaCita.clinicaId,
+            fechaHora: ultimaCita.fechaHora.toISOString(),
+            estatus: estatusCitaDeDominio(ultimaCita.estatus),
+            canalAgendamiento: ultimaCita.canalAgendamiento,
+            codigoConfirmacion: ultimaCita.codigoConfirmacion ?? '',
+            confirmadaEn: aIso(ultimaCita.confirmadaEn),
+          };
+        }
 
         return {
           id: f.id,
@@ -253,8 +257,8 @@ export class PersistenciaService {
   async cargarTickets(): Promise<TicketRegistro[] | null> {
     return this.intentar('cargar los tickets', async (db) => {
       const filas = await db.ticket.findMany();
-      return filas.map(
-        (f): TicketRegistro => ({
+      return filas.map((f): TicketRegistro => {
+        return {
           id: f.id,
           folio: f.folio,
           pacienteId: f.pacienteId,
@@ -275,8 +279,8 @@ export class PersistenciaService {
           esDemo: f.esDemo,
           creadoEn: f.creadoEn.toISOString(),
           actualizadoEn: f.actualizadoEn.toISOString(),
-        }),
-      );
+        };
+      });
     });
   }
 
@@ -318,49 +322,51 @@ export class PersistenciaService {
       }
     }
 
-    const ok = await this.intentar(`guardar el evento ${evento.tipo} sin llaves foráneas`, (cli) =>
-      cli.evento.upsert({
+    const operacion = `guardar el evento ${evento.tipo} sin llaves foráneas`;
+    const ok = await this.intentar(operacion, async (cli) => {
+      await cli.evento.upsert({
         where: { id: evento.eventId },
         create: { ...base, pacienteId: null, tramiteId: null },
         update: {},
-      }),
-    );
-    return ok !== null;
+      });
+      return true;
+    });
+    return ok === true;
   }
 
   async marcarEventoPublicado(eventId: string): Promise<void> {
-    await this.intentar('marcar el evento como publicado', (db) =>
-      db.evento.updateMany({
+    await this.intentar('marcar el evento como publicado', async (db) => {
+      await db.evento.updateMany({
         where: { id: eventId },
         data: { publicadoEn: new Date(), intentosPublicacion: { increment: 1 } },
-      }),
-    );
+      });
+    });
   }
 
   async registrarIntentoFallido(eventId: string): Promise<void> {
-    await this.intentar('registrar el intento de publicación', (db) =>
-      db.evento.updateMany({
+    await this.intentar('registrar el intento de publicación', async (db) => {
+      await db.evento.updateMany({
         where: { id: eventId },
         data: { intentosPublicacion: { increment: 1 } },
-      }),
-    );
+      });
+    });
   }
 
   async eventosPendientesDePublicar(limite = 100): Promise<EventoOmnicanal[]> {
-    const filas = await this.intentar('leer eventos pendientes de publicar', (db) =>
-      db.evento.findMany({
+    const filas = await this.intentar('leer eventos pendientes de publicar', async (db) => {
+      return db.evento.findMany({
         where: { publicadoEn: null },
         orderBy: { creadoEn: 'asc' },
         take: limite,
-      }),
-    );
+      });
+    });
     return this.payloadsValidos(filas ?? []);
   }
 
   async cargarEventos(): Promise<EventoOmnicanal[] | null> {
-    const filas = await this.intentar('cargar el historial de eventos', (db) =>
-      db.evento.findMany({ orderBy: { creadoEn: 'asc' }, take: MAX_EVENTOS_A_CARGAR }),
-    );
+    const filas = await this.intentar('cargar el historial de eventos', async (db) => {
+      return db.evento.findMany({ orderBy: { creadoEn: 'asc' }, take: MAX_EVENTOS_A_CARGAR });
+    });
     return filas ? this.payloadsValidos(filas) : null;
   }
 

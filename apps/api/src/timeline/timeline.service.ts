@@ -11,7 +11,7 @@ export interface EntradaTimeline {
   actor: string;
   actorTipo: TipoActor;
   accion: string;
-  tipoEvento: EventoOmnicanal['tipo'];
+  tipoEvento: EventoOmnicanal['tipo'] | 'interaccion.registrada';
   tramiteId: string | null;
   estado: string | null;
 }
@@ -165,6 +165,39 @@ export class TimelineService implements OnModuleInit {
     const lista = this.porPaciente.get(evento.pacienteId) ?? [];
     lista.push(traducirEventoATimeline(evento));
     this.porPaciente.set(evento.pacienteId, lista);
+  }
+
+  /**
+   * Incorpora una interacción directa de canal (llamada de Call Center o correo simulado, #23)
+   * en la línea de tiempo unificada con su ícono correspondiente.
+   */
+  registrarInteraccion(entrada: {
+    id: string;
+    pacienteId: string;
+    tramiteId?: string | null;
+    canal: CanalAtencion;
+    actorTipo: TipoActor;
+    resumen: string;
+    fecha?: string;
+  }): EntradaTimeline | null {
+    if (!entrada.pacienteId || this.idsRegistrados.has(entrada.id)) return null;
+    this.idsRegistrados.add(entrada.id);
+    const item: EntradaTimeline = {
+      eventId: entrada.id,
+      fecha: entrada.fecha ?? new Date().toISOString(),
+      canal: entrada.canal,
+      icono: ICONO_POR_CANAL[entrada.canal],
+      actor: NOMBRE_ACTOR[entrada.actorTipo],
+      actorTipo: entrada.actorTipo,
+      accion: entrada.resumen,
+      tipoEvento: 'interaccion.registrada',
+      tramiteId: entrada.tramiteId ?? null,
+      estado: null,
+    };
+    const lista = this.porPaciente.get(entrada.pacienteId) ?? [];
+    lista.push(item);
+    this.porPaciente.set(entrada.pacienteId, lista);
+    return item;
   }
 
   consultar(

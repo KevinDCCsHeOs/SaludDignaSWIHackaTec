@@ -1,15 +1,45 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import type { CanalAtencion } from '@salud-digna/shared';
 import type { Request } from 'express';
 import { Auditar, Permisos, RequiereCanalVerificado, Roles } from '../auth/decoradores';
 import type { UsuarioAutenticado } from '../auth/guards';
 import { CanalVerificadoGuard } from '../otp/otp.service';
+import { TramitesService } from '../tramites/tramites.service';
 import { IdentityResolverService, RegistroLigeroSchema } from './identidad.service';
 import type { z } from 'zod';
 
 @Controller('identidad')
 export class IdentidadController {
-  constructor(private readonly identidadService: IdentityResolverService) {}
+  constructor(
+    private readonly identidadService: IdentityResolverService,
+    private readonly tramites: TramitesService,
+  ) {}
+
+  @Roles('asesor', 'asesor_pro', 'admin')
+  @Permisos('tramite:otros:leer')
+  @Auditar({ accion: 'leer', entidad: 'PacienteBusqueda' })
+  @Get('pacientes/buscar')
+  buscarPacientes(
+    @Query('q') q: string | undefined,
+    @Req() req: Request & { usuario?: UsuarioAutenticado },
+  ) {
+    const rol = req.usuario?.rol ?? 'asesor';
+    const termino = (q ?? '').trim();
+
+    // Si busca por folio de trámite (SD-2026-...), resuelve directamente al paciente titular
+    if (/^SD-\d{4}-\d+$/i.test(termino)) {
+      try {
+        const tramite = this.tramites.obtenerPorIdOFolio(termino.toUpperCase());
+        const perfil = this.identidadService.obtenerPerfilMinimizado(tramite.pacienteId, rol);
+        return { total: 1, pacientes: [{ ...perfil, folioCoincidente: tramite.folio }] };
+      } catch {
+        return { total: 0, pacientes: [] };
+      }
+    }
+
+    const pacientes = this.identidadService.buscarPacientesMinimizado(termino, rol);
+    return { total: pacientes.length, pacientes };
+  }
 
   @Permisos('identidad:resolver')
   @Post('resolver')

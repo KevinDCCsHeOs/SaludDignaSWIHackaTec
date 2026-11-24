@@ -2,7 +2,7 @@
   "name": "@salud-digna/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "Contrato compartido de tipos, enumeraciones y validaciones para Salud Digna Omnicanal",
+  "description": "Contrato compartido de tipos, enumeraciones y catálogo de eventos (zod) para Salud Digna Omnicanal",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -13,11 +13,21 @@
     "./enums": {
       "types": "./dist/enums/index.d.ts",
       "default": "./dist/enums/index.js"
+    },
+    "./events": {
+      "types": "./dist/events/index.d.ts",
+      "default": "./dist/events/index.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/*.test.mjs",
+    "docs:eventos": "node scripts/generar-docs-eventos.mjs",
+    "docs:eventos:check": "node scripts/generar-docs-eventos.mjs --check"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

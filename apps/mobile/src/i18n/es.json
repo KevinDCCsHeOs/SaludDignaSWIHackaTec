@@ -1,0 +1,48 @@
+{
+  "app": {
+    "nombre": "Salud Digna",
+    "sinConexion": "Sin conexión: mostrando el último estado guardado en caché."
+  },
+  "tabs": {
+    "inicio": "Inicio",
+    "misTramites": "Mis trámites",
+    "citas": "Citas",
+    "resultados": "Resultados",
+    "ayuda": "Ayuda"
+  },
+  "login": {
+    "titulo": "Bienvenido a Salud Digna",
+    "subtitulo": "Consulta tus citas, trámites y resultados en un solo lugar.",
+    "email": "Correo electrónico",
+    "contrasena": "Contraseña",
+    "entrar": "Iniciar sesión",
+    "demoAna": "Entrar como Ana (Demo)"
+  },
+  "verificar": {
+    "titulo": "Verificación de seguridad",
+    "subtitulo": "Ingresa el código de 6 dígitos que enviamos para proteger tu información.",
+    "solicitar": "Enviar código OTP",
+    "confirmar": "Verificar código"
+  },
+  "inicio": {
+    "tramiteActivo": "Tu trámite activo",
+    "sinTramite": "No tienes trámites pendientes en este momento.",
+    "retomar": "Ver detalle y retomar",
+    "citaConfirmada": "Tu cita está confirmada"
+  },
+  "citas": {
+    "titulo": "Mis citas",
+    "vacio": "Aún no tienes citas agendadas."
+  },
+  "resultados": {
+    "titulo": "Mis resultados",
+    "info": "Tus resultados aparecen aquí en cuanto completan revisión técnica y validación médica."
+  },
+  "ayuda": {
+    "titulo": "Ayuda y accesibilidad",
+    "abrirWhatsapp": "Continuar en WhatsApp",
+    "tamanoFuente": "Tamaño de texto accesible",
+    "notificaciones": "Notificaciones push",
+    "cerrarSesion": "Cerrar sesión"
+  }
+}

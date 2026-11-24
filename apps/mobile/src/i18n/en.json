@@ -1,0 +1,48 @@
+{
+  "app": {
+    "nombre": "Salud Digna",
+    "sinConexion": "Offline: showing your last cached status."
+  },
+  "tabs": {
+    "inicio": "Home",
+    "misTramites": "Processes",
+    "citas": "Appointments",
+    "resultados": "Results",
+    "ayuda": "Help"
+  },
+  "login": {
+    "titulo": "Welcome to Salud Digna",
+    "subtitulo": "View your appointments, processes, and results in one place.",
+    "email": "Email",
+    "contrasena": "Password",
+    "entrar": "Sign in",
+    "demoAna": "Sign in as Ana (Demo)"
+  },
+  "verificar": {
+    "titulo": "Security verification",
+    "subtitulo": "Enter the 6-digit verification code we sent to protect your account.",
+    "solicitar": "Send OTP code",
+    "confirmar": "Verify code"
+  },
+  "inicio": {
+    "tramiteActivo": "Your active process",
+    "sinTramite": "You have no pending processes right now.",
+    "retomar": "View details & resume",
+    "citaConfirmada": "Your appointment is confirmed"
+  },
+  "citas": {
+    "titulo": "My appointments",
+    "vacio": "You have no scheduled appointments yet."
+  },
+  "resultados": {
+    "titulo": "My results",
+    "info": "Your results appear here once technical review and medical validation finish."
+  },
+  "ayuda": {
+    "titulo": "Help & accessibility",
+    "abrirWhatsapp": "Continue on WhatsApp",
+    "tamanoFuente": "Accessible text size",
+    "notificaciones": "Push notifications",
+    "cerrarSesion": "Sign out"
+  }
+}

@@ -78,6 +78,16 @@ export function traducirEventoATimeline(evento: EventoOmnicanal): EntradaTimelin
       accion = `Trámite retomado en ${evento.datos.canalActual} desde ${evento.datos.pasoActual}`;
       estado = evento.datos.estadoRestaurado;
       break;
+    case 'tramite.avanzado':
+      accion = `Trámite avanzó de ${evento.datos.estadoAnterior} a ${evento.datos.estadoNuevo}`;
+      estado = evento.datos.estadoNuevo;
+      break;
+    case 'tramite.cancelado':
+      accion = evento.datos.citaCancelada
+        ? `Trámite ${evento.datos.folio} cancelado (cita cancelada)`
+        : `Trámite ${evento.datos.folio} cancelado`;
+      estado = 'cancelado';
+      break;
     case 'canal.cambiado':
       accion = `Cambió de canal: ${evento.datos.canalAnterior} → ${evento.datos.canalNuevo}`;
       estado = evento.datos.pasoActual ?? null;
@@ -95,6 +105,9 @@ export function traducirEventoATimeline(evento: EventoOmnicanal): EntradaTimelin
       break;
     case 'ticket.escalado':
       accion = `Ticket ${evento.datos.folio} escalado: ${evento.datos.nivelAnterior} → ${evento.datos.nivelNuevo}`;
+      break;
+    case 'ticket.asignado':
+      accion = `Ticket ${evento.datos.folio} asignado a ${evento.datos.asignadoAId}`;
       break;
     case 'ticket.sla_vencido':
       accion = `Alerta SLA vencido en ticket ${evento.datos.folio}`;

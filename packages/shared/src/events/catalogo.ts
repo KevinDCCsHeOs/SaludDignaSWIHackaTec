@@ -104,6 +104,20 @@ const TramiteRetomadoDatosSchema = z.object({
   canalActual: CanalAtencionSchema,
 });
 
+const TramiteAvanzadoDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  estadoAnterior: z.enum(ESTADOS_TRAMITE),
+  estadoNuevo: z.enum(ESTADOS_TRAMITE),
+  pasoActual: z.string().min(1).max(60),
+});
+
+const TramiteCanceladoDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  estadoPrevio: z.enum(ESTADOS_TRAMITE),
+  citaCancelada: z.boolean(),
+  motivo: z.string().min(1).max(200).optional(),
+});
+
 const CanalCambiadoDatosSchema = z.object({
   canalAnterior: CanalAtencionSchema,
   canalNuevo: CanalAtencionSchema,
@@ -127,6 +141,15 @@ const TicketEscaladoDatosSchema = z.object({
   nivelNuevo: z.enum(NIVELES_ESCALAMIENTO),
   motivo: z.string().min(1).max(255),
   asignadoAId: z.string().min(1).max(36).nullable(),
+});
+
+const TicketAsignadoDatosSchema = z.object({
+  ticketId: z.string().min(1).max(36),
+  folio: z.string().min(1).max(32),
+  asignadoAId: z.string().min(1).max(36),
+  asignadoAnteriorId: z.string().min(1).max(36).nullable(),
+  nivel: z.enum(NIVELES_ESCALAMIENTO),
+  automatico: z.boolean(),
 });
 
 const TicketSlaVencidoDatosSchema = z.object({
@@ -227,6 +250,16 @@ export const TramiteRetomadoEventoSchema = crearEsquemaEvento(
   1,
   TramiteRetomadoDatosSchema,
 );
+export const TramiteAvanzadoEventoSchema = crearEsquemaEvento(
+  'tramite.avanzado',
+  1,
+  TramiteAvanzadoDatosSchema,
+);
+export const TramiteCanceladoEventoSchema = crearEsquemaEvento(
+  'tramite.cancelado',
+  1,
+  TramiteCanceladoDatosSchema,
+);
 export const CanalCambiadoEventoSchema = crearEsquemaEvento(
   'canal.cambiado',
   1,
@@ -241,6 +274,11 @@ export const TicketEscaladoEventoSchema = crearEsquemaEvento(
   'ticket.escalado',
   1,
   TicketEscaladoDatosSchema,
+);
+export const TicketAsignadoEventoSchema = crearEsquemaEvento(
+  'ticket.asignado',
+  1,
+  TicketAsignadoDatosSchema,
 );
 export const TicketSlaVencidoEventoSchema = crearEsquemaEvento(
   'ticket.sla_vencido',
@@ -274,9 +312,12 @@ export const EventoOmnicanalSchema = z.discriminatedUnion('tipo', [
   CitaConfirmadaEventoSchema,
   TramitePausadoEventoSchema,
   TramiteRetomadoEventoSchema,
+  TramiteAvanzadoEventoSchema,
+  TramiteCanceladoEventoSchema,
   CanalCambiadoEventoSchema,
   TicketCreadoEventoSchema,
   TicketEscaladoEventoSchema,
+  TicketAsignadoEventoSchema,
   TicketSlaVencidoEventoSchema,
   TicketCerradoEventoSchema,
   ResultadoLiberadoEventoSchema,
@@ -527,6 +568,57 @@ export const CATALOGO_EVENTOS: readonly DefinicionEventoCatalogo[] = [
     },
   },
   {
+    tipo: 'tramite.avanzado',
+    version: 1,
+    dominio: 'tramite',
+    descripcion:
+      'Transición genérica de la máquina de estados sin evento de dominio específico (ej. registro, pago, en proceso, cierre).',
+    emisor: 'tramites',
+    consumidores: ['timeline', 'realtime', 'metricas'],
+    schema: TramiteAvanzadoEventoSchema,
+    ejemplo: {
+      eventId: '10000000-0000-4000-8000-000000000019',
+      tipo: 'tramite.avanzado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'call_center',
+      actor: { tipo: 'asesor', id: 'usr_asesor_01' },
+      timestamp: '2026-11-24T16:05:00Z',
+      datos: {
+        folio: 'SD-2026-000123',
+        estadoAnterior: 'cita_confirmada',
+        estadoNuevo: 'pago_factura',
+        pasoActual: 'pago_factura',
+      },
+    },
+  },
+  {
+    tipo: 'tramite.cancelado',
+    version: 1,
+    dominio: 'tramite',
+    descripcion: 'El trámite se cancela (estado terminal) y, si existía, se cancela su cita.',
+    emisor: 'tramites',
+    consumidores: ['timeline', 'realtime', 'notificaciones', 'metricas'],
+    schema: TramiteCanceladoEventoSchema,
+    ejemplo: {
+      eventId: '10000000-0000-4000-8000-000000000020',
+      tipo: 'tramite.cancelado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'app',
+      actor: { tipo: 'paciente', id: 'pac_ana_demo' },
+      timestamp: '2026-11-25T08:00:00Z',
+      datos: {
+        folio: 'SD-2026-000123',
+        estadoPrevio: 'cita_agendada',
+        citaCancelada: true,
+        motivo: 'La paciente reprogramará más adelante',
+      },
+    },
+  },
+  {
     tipo: 'canal.cambiado',
     version: 1,
     dominio: 'canal',
@@ -679,6 +771,34 @@ export const CATALOGO_EVENTOS: readonly DefinicionEventoCatalogo[] = [
         nivelNuevo: 'asesor',
         motivo: 'El paciente solicitó confirmar preparación con un asesor humano',
         asignadoAId: 'usr_asesor_01',
+      },
+    },
+  },
+  {
+    tipo: 'ticket.asignado',
+    version: 1,
+    dominio: 'ticket',
+    descripcion:
+      'Un ticket se asigna (o reasigna) a un asesor; automático por menor carga regional o manual.',
+    emisor: 'tickets',
+    consumidores: ['timeline', 'realtime', 'metricas', 'auditoria'],
+    schema: TicketAsignadoEventoSchema,
+    ejemplo: {
+      eventId: '10000000-0000-4000-8000-000000000021',
+      tipo: 'ticket.asignado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'asesor', id: 'usr_asesor_01' },
+      timestamp: '2026-11-24T15:18:00Z',
+      datos: {
+        ticketId: 'tkt_101',
+        folio: 'TK-2026-000042',
+        asignadoAId: 'usr_asesor_02',
+        asignadoAnteriorId: 'usr_asesor_01',
+        nivel: 'asesor',
+        automatico: false,
       },
     },
   },

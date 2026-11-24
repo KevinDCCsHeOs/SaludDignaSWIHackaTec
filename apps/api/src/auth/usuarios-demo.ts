@@ -93,6 +93,52 @@ export const USUARIOS_DEMO_SEMILLA: readonly CredencialDemoSemilla[] = [
     region: null,
     pacienteId: null,
   },
+  // Asesores adicionales para el balanceo de carga por región de los tickets (#16)
+  {
+    id: 'usr_asesor_02',
+    email: 'asesor2.puebla@demo.saluddigna.local',
+    nombre: 'Mariana Cruz (Asesor Demo)',
+    contrasenaDemo: 'DemoAsesor2026!',
+    rol: 'asesor',
+    region: 'Puebla',
+    pacienteId: null,
+  },
+  {
+    id: 'usr_asesor_cdmx_01',
+    email: 'asesor.cdmx@demo.saluddigna.local',
+    nombre: 'Jorge Pineda (Asesor Demo)',
+    contrasenaDemo: 'DemoAsesor2026!',
+    rol: 'asesor',
+    region: 'CDMX',
+    pacienteId: null,
+  },
+  {
+    id: 'usr_asesor_pro_cdmx_01',
+    email: 'asesor.pro.cdmx@demo.saluddigna.local',
+    nombre: 'Elena Ríos (Asesor Pro Demo)',
+    contrasenaDemo: 'DemoAsesorPro2026!',
+    rol: 'asesor_pro',
+    region: 'CDMX',
+    pacienteId: null,
+  },
+  {
+    id: 'usr_asesor_mty_01',
+    email: 'asesor.mty@demo.saluddigna.local',
+    nombre: 'Raúl Garza (Asesor Demo)',
+    contrasenaDemo: 'DemoAsesor2026!',
+    rol: 'asesor',
+    region: 'Monterrey',
+    pacienteId: null,
+  },
+  {
+    id: 'usr_asesor_pro_mty_01',
+    email: 'asesor.pro.mty@demo.saluddigna.local',
+    nombre: 'Paola Treviño (Asesor Pro Demo)',
+    contrasenaDemo: 'DemoAsesorPro2026!',
+    rol: 'asesor_pro',
+    region: 'Monterrey',
+    pacienteId: null,
+  },
 ] as const;
 
 const COSTO_BCRYPT = process.env.NODE_ENV === 'test' ? 4 : 10;

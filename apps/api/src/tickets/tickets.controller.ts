@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { z } from 'zod';
 import { Auditar, Roles } from '../auth/decoradores';
 import type { UsuarioAutenticado } from '../auth/guards';
+import { AccesoPacienteService } from '../otp/acceso-paciente.service';
 import {
   CrearTicketSchema,
   EscalarTicketSchema,
@@ -13,7 +14,10 @@ import {
 
 @Controller('tickets')
 export class TicketsController {
-  constructor(private readonly tickets: TicketsService) {}
+  constructor(
+    private readonly tickets: TicketsService,
+    private readonly acceso: AccesoPacienteService,
+  ) {}
 
   @Auditar({ accion: 'crear', entidad: 'Ticket' })
   @Post()
@@ -48,11 +52,24 @@ export class TicketsController {
     return { total: tickets.length, tickets };
   }
 
+  /** Estatus de un ticket por id o folio, consultable desde cualquier canal (#16). */
+  @Auditar({ accion: 'leer', entidad: 'Ticket' })
+  @Get(':id')
+  async obtener(@Param('id') id: string, @Req() req: Request & { usuario: UsuarioAutenticado }) {
+    const ticket = this.tickets.obtenerPorIdOFolio(id);
+    await this.acceso.verificar(req.usuario, ticket.pacienteId, req.headers['x-canal']);
+    return ticket;
+  }
+
   @Roles('asesor', 'asesor_pro', 'admin')
   @Auditar({ accion: 'actualizar', entidad: 'Ticket' })
   @Post(':id/asignar')
-  asignar(@Param('id') id: string, @Body() body: { asesorId?: string }) {
-    return this.tickets.asignar(id, body?.asesorId);
+  asignar(
+    @Param('id') id: string,
+    @Body() body: { asesorId?: string },
+    @Req() req: Request & { usuario: UsuarioAutenticado },
+  ) {
+    return this.tickets.asignar(id, body?.asesorId, { tipo: req.usuario.rol, id: req.usuario.id });
   }
 
   @Roles('asesor_ia', 'asesor', 'asesor_pro', 'admin')

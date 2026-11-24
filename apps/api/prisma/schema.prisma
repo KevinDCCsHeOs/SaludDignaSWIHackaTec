@@ -551,6 +551,8 @@ model Ticket {
   /// Resumen automático generado por IA (máx. 5 líneas) al escalar a un humano (#25).
   resumenIa          String?           @map("resumen_ia") @db.Text
   motivoEscalamiento String?           @map("motivo_escalamiento") @db.VarChar(255)
+  /// Texto de resolución capturado por el asesor al resolver o cerrar el ticket (#16).
+  resolucion         String?           @db.VarChar(255)
   slaVenceEn         DateTime          @map("sla_vence_en")
   slaVencido         Boolean           @default(false) @map("sla_vencido")
   resueltoEn         DateTime?         @map("resuelto_en")

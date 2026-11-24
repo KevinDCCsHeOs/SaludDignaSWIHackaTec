@@ -1,0 +1,47 @@
+name: Despliegue a la VPS
+
+# Al fusionar en main se despliega en la VPS Hostinger por SSH (#35).
+# Requiere los secretos del repositorio: VPS_HOST, VPS_USUARIO y VPS_LLAVE_SSH.
+# Mientras no existan, el job termina sin hacer nada.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: despliegue-produccion
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    name: Desplegar main
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USUARIO: ${{ secrets.VPS_USUARIO }}
+      VPS_LLAVE_SSH: ${{ secrets.VPS_LLAVE_SSH }}
+    steps:
+      - name: Verificar secretos
+        id: secretos
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_USUARIO" ] || [ -z "$VPS_LLAVE_SSH" ]; then
+            echo "Sin secretos VPS_*: se omite el despliegue."
+            echo "listo=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configurar SSH
+        if: steps.secretos.outputs.listo == 'true'
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_LLAVE_SSH" > ~/.ssh/id_despliegue
+          chmod 600 ~/.ssh/id_despliegue
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Ejecutar infra/scripts/desplegar.sh en la VPS
+        if: steps.secretos.outputs.listo == 'true'
+        run: |
+          ssh -i ~/.ssh/id_despliegue "$VPS_USUARIO@$VPS_HOST" \
+            'cd /opt/salud-digna && ./infra/scripts/desplegar.sh'

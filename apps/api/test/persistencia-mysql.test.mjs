@@ -89,6 +89,21 @@ test(
       ).json();
       ticketId = ticket.id;
 
+      // Llamada de Call Center (#19, #23): debe quedar en `interacciones`
+      const llamada = await fetch(`${url1}/canales/llamadas`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          pacienteId: 'pac_ana_demo',
+          tramiteId,
+          motivo: 'Duda de preparación',
+          notas: 'Se explicó el ayuno de 8 horas',
+          resultado: 'Duda resuelta',
+        }),
+      });
+      assert.equal(llamada.status, 201);
+      assert.equal(await prisma.interaccion.count({ where: { tramiteId } }), 1);
+
       // Lo escrito quedó en MySQL (fuente de verdad) y el evento en el outbox
       const fila = await prisma.tramite.findUnique({
         where: { id: tramiteId },
@@ -119,12 +134,25 @@ test(
       const ticket = await fetch(`${url2}/tickets/${ticketId}`, { headers });
       assert.equal(ticket.status, 200);
 
+      const interacciones = await (
+        await fetch(`${url2}/canales/interacciones/pac_ana_demo`, { headers })
+      ).json();
+      const lista = Array.isArray(interacciones) ? interacciones : interacciones.interacciones;
+      assert.ok(
+        lista.some((i) => i.canal === 'call_center' && i.tramiteId === tramiteId),
+        'La llamada no sobrevivió el reinicio',
+      );
+
       const timeline = await (
         await fetch(`${url2}/pacientes/pac_ana_demo/timeline?tramiteId=${tramiteId}`, { headers })
       ).json();
       const tipos = timeline.items.map((i) => i.tipoEvento);
       assert.ok(tipos.includes('cotizacion.iniciada'), 'El timeline no se reconstruyó');
       assert.ok(tipos.includes('cita.agendada'));
+      assert.ok(
+        timeline.items.some((i) => i.tipoEvento === 'interaccion.registrada'),
+        'La llamada no volvió a la línea de tiempo',
+      );
 
       // El folio siguiente continúa la secuencia (no reinicia en 000001)
       const otro = await (
@@ -144,6 +172,7 @@ test(
       await app2.close();
       // Limpiar lo creado por la prueba (las tablas hijas caen en cascada)
       await prisma.evento.deleteMany({ where: { paciente: { id: 'pac_ana_demo' } } });
+      await prisma.interaccion.deleteMany({ where: { pacienteId: 'pac_ana_demo' } });
       await prisma.ticket.deleteMany({ where: { pacienteId: 'pac_ana_demo' } });
       await prisma.tramite.deleteMany({ where: { pacienteId: 'pac_ana_demo' } });
       await prisma.$disconnect();

@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Todos los PR (incluidos los apilados sobre otra rama, ej. un PR contra `Canales`)
   pull_request:
-    branches: [main, develop]
   push:
     branches: [main, develop]
 

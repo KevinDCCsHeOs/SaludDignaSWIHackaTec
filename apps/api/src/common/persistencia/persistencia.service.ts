@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { validarEventoOmnicanalSeguro, type EventoOmnicanal } from '@salud-digna/shared';
+import type { EstadoEntregaMensaje, InteraccionRegistro } from '../../canales/canales.service';
 import type { TicketRegistro } from '../../tickets/tickets.service';
 import type {
   CitaTramiteRegistro,
@@ -37,6 +38,10 @@ function describirError(error: unknown): string {
 function estatusCitaDeDominio(estatus: string): CitaTramiteRegistro['estatus'] {
   if (estatus === 'confirmada' || estatus === 'cancelada') return estatus;
   return 'agendada';
+}
+
+function esEstadoEntrega(valor: unknown): valor is EstadoEntregaMensaje {
+  return valor === 'sent' || valor === 'delivered' || valor === 'read' || valor === 'failed';
 }
 
 function esErrorDeLlaveForanea(error: unknown): boolean {
@@ -279,6 +284,64 @@ export class PersistenciaService {
           esDemo: f.esDemo,
           creadoEn: f.creadoEn.toISOString(),
           actualizadoEn: f.actualizadoEn.toISOString(),
+        };
+      });
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Interacciones por canal: llamadas, correos y mensajes de WhatsApp (#19, #20, #23)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Guarda una interacción. El estado de entrega de WhatsApp no tiene columna propia y viaja en
+   * `metadatos.estadoEntrega`. Un duplicado por `(canal, referenciaExterna)` se ignora.
+   */
+  async guardarInteraccion(i: InteraccionRegistro): Promise<boolean> {
+    const ok = await this.intentar('guardar la interacción', async (db) => {
+      const metadatos = { ...(i.metadatos ?? {}), estadoEntrega: i.estadoEntrega };
+      await db.interaccion.upsert({
+        where: { id: i.id },
+        create: {
+          id: i.id,
+          pacienteId: i.pacienteId,
+          tramiteId: i.tramiteId,
+          canal: i.canal,
+          actorTipo: i.actorTipo,
+          actorId: i.actorId,
+          resumen: i.resumen,
+          referenciaExterna: i.referenciaExterna,
+          metadatos: comoJson(metadatos),
+          creadoEn: new Date(i.creadoEn),
+        },
+        update: { metadatos: comoJson(metadatos) },
+      });
+      return true;
+    });
+    return ok === true;
+  }
+
+  async cargarInteracciones(): Promise<InteraccionRegistro[] | null> {
+    return this.intentar('cargar las interacciones', async (db) => {
+      const filas = await db.interaccion.findMany({
+        orderBy: { creadoEn: 'asc' },
+        take: MAX_EVENTOS_A_CARGAR,
+      });
+      return filas.map((f): InteraccionRegistro => {
+        const metadatos = (f.metadatos as Record<string, unknown> | null) ?? null;
+        const { estadoEntrega, ...resto } = metadatos ?? {};
+        return {
+          id: f.id,
+          pacienteId: f.pacienteId,
+          tramiteId: f.tramiteId,
+          canal: f.canal,
+          actorTipo: f.actorTipo,
+          actorId: f.actorId,
+          resumen: f.resumen,
+          referenciaExterna: f.referenciaExterna,
+          estadoEntrega: esEstadoEntrega(estadoEntrega) ? estadoEntrega : null,
+          metadatos: metadatos ? resto : null,
+          creadoEn: f.creadoEn.toISOString(),
         };
       });
     });

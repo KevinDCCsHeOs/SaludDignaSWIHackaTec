@@ -1,0 +1,597 @@
+// ============================================================================
+// Salud Digna Omnicanal — Esquema Prisma (MySQL 8 · utf8mb4)
+// Issue #2: 02. [ARQ] Modelo de datos (MySQL)
+// Contrato compartido: cualquier modificación requiere PR dedicado y aviso.
+//
+// Reglas clave:
+// - Fuente única de verdad: solo `apps/api` accede a MySQL.
+// - Charset/Collation: utf8mb4 / utf8mb4_unicode_ci (acentos y emojis de WA).
+// - Campos marcados con [SENSIBLE · AES-256-GCM] se cifran en capa de aplicación
+//   (módulo `privacidad`, #10). Nunca escribirlos en logs.
+// - Datos de demo llevan `esDemo = true` (`es_demo`). Nunca usar datos reales.
+// - Tabla `auditoria`: solo inserción (usuario MySQL de la app sin UPDATE/DELETE).
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Enumeraciones (alineadas 1:1 con `packages/shared/src/enums/`)
+// ----------------------------------------------------------------------------
+
+enum CanalAtencion {
+  web
+  app
+  whatsapp
+  call_center
+  email
+}
+
+enum IdiomaPaciente {
+  es
+  en
+  nah
+}
+
+enum RolUsuario {
+  paciente
+  asesor_ia
+  asesor
+  asesor_pro
+  medico
+  revisor_tecnico
+  admin
+}
+
+enum TipoActor {
+  paciente
+  asesor_ia
+  asesor
+  asesor_pro
+  medico
+  revisor_tecnico
+  admin
+  sistema
+}
+
+enum TipoTramite {
+  estudio
+  resultado
+  factura
+}
+
+enum EstadoTramite {
+  cotizacion
+  registro
+  seleccion_clinica
+  cita_agendada
+  cita_confirmada
+  pago_factura
+  en_proceso
+  resultados_liberados
+  cerrado
+  pausado
+  cancelado
+}
+
+enum EstatusPasoTramite {
+  pendiente
+  en_progreso
+  completado
+  omitido
+  fallido
+}
+
+enum TipoTicket {
+  duda
+  queja
+  error_servicio
+  acceso_cuenta
+  informacion_incorrecta
+  urgencia
+}
+
+enum PrioridadTicket {
+  baja
+  media
+  alta
+  critica
+}
+
+enum EstatusTicket {
+  abierto
+  en_atencion
+  escalado
+  resuelto
+  cerrado
+}
+
+enum NivelEscalamiento {
+  ia
+  asesor
+  asesor_pro
+}
+
+enum EstatusClinica {
+  operando
+  retraso
+  fuera_de_servicio
+}
+
+enum CategoriaEstudio {
+  laboratorio
+  ultrasonido
+  rayos_x
+  mastografia
+  papanicolaou
+  electrocardiograma
+  densitometria
+  tomografia
+  resonancia
+  optometria
+  nutricion
+  otro
+}
+
+enum EstatusCita {
+  agendada
+  confirmada
+  en_curso
+  completada
+  reprogramada
+  cancelada
+  no_asistio
+}
+
+enum EstatusResultado {
+  captura
+  revision_tecnica
+  validacion_medica
+  liberado
+  rechazado
+}
+
+enum AccionAuditoria {
+  leer
+  crear
+  actualizar
+  eliminar
+  login
+  logout
+  verificar_otp
+  vincular_identidad
+  exportar
+  liberar_resultado
+}
+
+enum TipoConsentimiento {
+  aviso_privacidad
+  datos_sensibles
+  notificaciones
+}
+
+// ----------------------------------------------------------------------------
+// 1. Identidad, acceso y privacidad (Pilares 1 y 4)
+// ----------------------------------------------------------------------------
+
+/// Catálogo de roles RBAC con su matriz de permisos serializada (#6, #29).
+model Rol {
+  id            String     @id @default(cuid()) @db.VarChar(36)
+  clave         RolUsuario @unique
+  nombre        String     @db.VarChar(80)
+  descripcion   String?    @db.VarChar(255)
+  permisos      Json
+  creadoEn      DateTime   @default(now()) @map("creado_en")
+  actualizadoEn DateTime   @updatedAt @map("actualizado_en")
+
+  usuarios Usuario[]
+
+  @@map("roles")
+}
+
+/// Cuentas autenticables del sistema: pacientes con cuenta, asesores, médicos, revisores y admins.
+model Usuario {
+  id             String     @id @default(cuid()) @db.VarChar(36)
+  email          String     @unique @db.VarChar(254)
+  nombre         String     @db.VarChar(150)
+  /// Hash de contraseña generado con bcrypt/argon2. Nunca texto plano.
+  passwordHash   String     @map("hash") @db.VarChar(255)
+  rolClave       RolUsuario @map("rol")
+  region         String?    @db.VarChar(60)
+  activo         Boolean    @default(true)
+  esDemo         Boolean    @default(false) @map("es_demo")
+  ultimoAccesoEn DateTime?  @map("ultimo_acceso_en")
+  creadoEn       DateTime   @default(now()) @map("creado_en")
+  actualizadoEn  DateTime   @updatedAt @map("actualizado_en")
+
+  rol                 Rol         @relation(fields: [rolClave], references: [clave], onDelete: Restrict)
+  paciente            Paciente?
+  ticketsAsignados    Ticket[]    @relation("TicketAsignado")
+  resultadosRevisados Resultado[] @relation("ResultadoRevisor")
+  resultadosValidados Resultado[] @relation("ResultadoMedico")
+  auditorias          Auditoria[]
+
+  @@index([rolClave, region, activo], map: "idx_usuarios_rol_region_activo")
+  @@index([region], map: "idx_usuarios_region")
+  @@map("usuarios")
+}
+
+/// Persona física atendida en cualquiera de los canales. Separada de sus identidades por canal.
+model Paciente {
+  id                    String         @id @default(cuid()) @db.VarChar(36)
+  nombre                String         @db.VarChar(120)
+  apellidos             String         @db.VarChar(150)
+  /// [SENSIBLE · AES-256-GCM] Fecha de nacimiento cifrada en reposo (LFPDPPP).
+  fechaNacCifrada       String?        @map("fecha_nac_cifrada") @db.Text
+  /// [SENSIBLE · AES-256-GCM] CURP cifrada en reposo (LFPDPPP).
+  curpCifrado           String?        @map("curp_cifrado") @db.Text
+  /// Hash determinista (SHA-256 + pepper) de la CURP normalizada para búsquedas exactas (ADR 0002).
+  curpHash              String?        @unique(map: "uq_pacientes_curp_hash") @map("curp_hash") @db.Char(64)
+  /// [SENSIBLE · AES-256-GCM] JSON cifrado con datos fiscales (RFC, razón social, régimen, CP) (#33).
+  datosFiscalesCifrados String?        @map("datos_fiscales_cifrados") @db.Text
+  /// Correo normalizado en minúsculas. No único para soportar casos familiares/ambiguos (#7).
+  email                 String?        @db.VarChar(254)
+  /// Teléfono normalizado en formato E.164 (ej. +522221234567). No único para soportar teléfonos compartidos (#7).
+  telefonoE164          String?        @map("telefono_e164") @db.VarChar(20)
+  canalPreferido        CanalAtencion  @default(whatsapp) @map("canal_preferido")
+  idioma                IdiomaPaciente @default(es)
+  region                String?        @db.VarChar(60)
+  esDemo                Boolean        @default(false) @map("es_demo")
+  usuarioId             String?        @unique @map("usuario_id") @db.VarChar(36)
+  creadoEn              DateTime       @default(now()) @map("creado_en")
+  actualizadoEn         DateTime       @updatedAt @map("actualizado_en")
+
+  usuario         Usuario?         @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  identidades     IdentidadCanal[]
+  consentimientos Consentimiento[]
+  tramites        Tramite[]
+  interacciones   Interaccion[]
+  eventos         Evento[]
+  tickets         Ticket[]
+
+  @@index([telefonoE164], map: "idx_pacientes_telefono")
+  @@index([email], map: "idx_pacientes_email")
+  @@index([region], map: "idx_pacientes_region")
+  @@index([esDemo], map: "idx_pacientes_es_demo")
+  @@map("pacientes")
+}
+
+/// Vínculo entre un Paciente y un identificador específico de canal (teléfono WA, email, usuario app, etc.).
+model IdentidadCanal {
+  id                 String        @id @default(cuid()) @db.VarChar(36)
+  pacienteId         String        @map("paciente_id") @db.VarChar(36)
+  canal              CanalAtencion
+  /// Identificador normalizado: E.164 para WA/teléfono, minúsculas para email, ID externo en app/web.
+  identificador      String        @db.VarChar(254)
+  /// NULL mientras no supere verificación (OTP o preguntas de seguridad). No revelar contexto si es NULL.
+  verificadoEn       DateTime?     @map("verificado_en")
+  metodoVerificacion String?       @map("metodo_verificacion") @db.VarChar(40)
+  esPrincipal        Boolean       @default(false) @map("es_principal")
+  creadoEn           DateTime      @default(now()) @map("creado_en")
+  actualizadoEn      DateTime      @updatedAt @map("actualizado_en")
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@unique([canal, identificador], map: "uq_identidad_canal_identificador")
+  @@index([pacienteId], map: "idx_identidad_paciente")
+  @@index([identificador], map: "idx_identidad_identificador")
+  @@map("identidades_canal")
+}
+
+/// Registro auditable del consentimiento expreso del paciente por canal y versión de aviso (LFPDPPP, #10).
+model Consentimiento {
+  id           String             @id @default(cuid()) @db.VarChar(36)
+  pacienteId   String             @map("paciente_id") @db.VarChar(36)
+  tipo         TipoConsentimiento @default(aviso_privacidad)
+  versionAviso String             @map("version_aviso") @db.VarChar(32)
+  canal        CanalAtencion
+  otorgadoEn   DateTime           @default(now()) @map("otorgado_en")
+  revocadoEn   DateTime?          @map("revocado_en")
+  ip           String?            @db.VarChar(45)
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  @@index([pacienteId, tipo], map: "idx_consentimiento_paciente_tipo")
+  @@index([otorgadoEn], map: "idx_consentimiento_otorgado")
+  @@map("consentimientos")
+}
+
+// ----------------------------------------------------------------------------
+// 2. Catálogos operativos
+// ----------------------------------------------------------------------------
+
+/// Clínicas de Salud Digna (ficticias para el demo) con ubicación, horario y estatus operativo (#17, #31).
+model Clinica {
+  id             String         @id @default(cuid()) @db.VarChar(36)
+  codigo         String         @unique @db.VarChar(32)
+  nombre         String         @db.VarChar(160)
+  direccion      String         @db.VarChar(300)
+  lat            Decimal        @db.Decimal(10, 7)
+  lng            Decimal        @db.Decimal(10, 7)
+  region         String         @db.VarChar(60)
+  telefono       String?        @db.VarChar(20)
+  /// Horario estructurado por día de la semana en formato JSON.
+  horario        Json
+  estatus        EstatusClinica @default(operando)
+  mensajeEstatus String?        @map("mensaje_estatus") @db.VarChar(255)
+  esDemo         Boolean        @default(false) @map("es_demo")
+  creadoEn       DateTime       @default(now()) @map("creado_en")
+  actualizadoEn  DateTime       @updatedAt @map("actualizado_en")
+
+  citas    Cita[]
+  tramites Tramite[]
+
+  @@index([region, estatus], map: "idx_clinicas_region_estatus")
+  @@index([lat, lng], map: "idx_clinicas_coordenadas")
+  @@map("clinicas")
+}
+
+/// Catálogo de estudios de diagnóstico con precio aproximado, preparación y vigencia (#17, #25).
+model Estudio {
+  id              String           @id @default(cuid()) @db.VarChar(36)
+  codigo          String           @unique @db.VarChar(40)
+  nombre          String           @db.VarChar(160)
+  categoria       CategoriaEstudio
+  precio          Decimal          @db.Decimal(10, 2)
+  preparacion     String           @db.Text
+  duracionMinutos Int              @default(30) @map("duracion_minutos")
+  vigenciaDias    Int              @default(30) @map("vigencia_dias")
+  activo          Boolean          @default(true)
+  esDemo          Boolean          @default(false) @map("es_demo")
+  creadoEn        DateTime         @default(now()) @map("creado_en")
+  actualizadoEn   DateTime         @updatedAt @map("actualizado_en")
+
+  tramites   Tramite[]
+  resultados Resultado[]
+
+  @@index([categoria, activo], map: "idx_estudios_categoria_activo")
+  @@index([nombre], map: "idx_estudios_nombre")
+  @@map("estudios")
+}
+
+// ----------------------------------------------------------------------------
+// 3. Motor de trámites, contexto, citas y resultados (Pilar 2)
+// ----------------------------------------------------------------------------
+
+/// Trámite omnicanal con máquina de estados, folio legible y contexto JSON autoguardado (#12, #13).
+model Tramite {
+  id             String         @id @default(cuid()) @db.VarChar(36)
+  /// Folio legible dictable por teléfono (ej. SD-2026-000123).
+  folio          String         @unique @db.VarChar(32)
+  pacienteId     String         @map("paciente_id") @db.VarChar(36)
+  estudioId      String?        @map("estudio_id") @db.VarChar(36)
+  clinicaId      String?        @map("clinica_id") @db.VarChar(36)
+  tipo           TipoTramite    @default(estudio)
+  estado         EstadoTramite  @default(cotizacion)
+  /// Guarda el estado previo al pausar para retomar exactamente en el mismo punto (#12).
+  estadoAnterior EstadoTramite? @map("estado_anterior")
+  pasoActual     String         @map("paso_actual") @db.VarChar(60)
+  /// Contexto flexible autoguardado en cada paso: estudio, clínica, fechaTentativa, pendientes[], etc.
+  contexto       Json
+  canalOrigen    CanalAtencion  @map("canal_origen")
+  ultimoCanal    CanalAtencion  @map("ultimo_canal")
+  region         String?        @db.VarChar(60)
+  venceEn        DateTime?      @map("vence_en")
+  esDemo         Boolean        @default(false) @map("es_demo")
+  creadoEn       DateTime       @default(now()) @map("creado_en")
+  actualizadoEn  DateTime       @updatedAt @map("actualizado_en")
+
+  paciente      Paciente      @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  estudio       Estudio?      @relation(fields: [estudioId], references: [id], onDelete: SetNull)
+  clinica       Clinica?      @relation(fields: [clinicaId], references: [id], onDelete: SetNull)
+  pasos         PasoTramite[]
+  interacciones Interaccion[]
+  eventos       Evento[]
+  tickets       Ticket[]
+  citas         Cita[]
+  resultados    Resultado[]
+
+  @@index([pacienteId, estado], map: "idx_tramites_paciente_estado")
+  @@index([estado, actualizadoEn], map: "idx_tramites_estado_actualizado")
+  @@index([region, estado], map: "idx_tramites_region_estado")
+  @@index([ultimoCanal], map: "idx_tramites_ultimo_canal")
+  @@index([venceEn], map: "idx_tramites_vence_en")
+  @@map("tramites")
+}
+
+/// Historial granular de pasos ejecutados dentro de un trámite (clave para Patient Journey y reanudación).
+model PasoTramite {
+  id           String             @id @default(cuid()) @db.VarChar(36)
+  tramiteId    String             @map("tramite_id") @db.VarChar(36)
+  orden        Int
+  clavePaso    String             @map("clave_paso") @db.VarChar(60)
+  estatus      EstatusPasoTramite @default(en_progreso)
+  canal        CanalAtencion
+  /// Snapshot o datos parciales capturados en este paso (JSON).
+  datos        Json?
+  iniciadoEn   DateTime           @default(now()) @map("iniciado_en")
+  completadoEn DateTime?          @map("completado_en")
+
+  tramite Tramite @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+
+  @@unique([tramiteId, orden], map: "uq_paso_tramite_orden")
+  @@index([tramiteId, clavePaso], map: "idx_paso_tramite_clave")
+  @@index([canal, iniciadoEn], map: "idx_paso_tramite_canal_fecha")
+  @@map("pasos_tramite")
+}
+
+/// Cita agendada para un trámite en una clínica específica.
+model Cita {
+  id                 String        @id @default(cuid()) @db.VarChar(36)
+  tramiteId          String        @map("tramite_id") @db.VarChar(36)
+  clinicaId          String        @map("clinica_id") @db.VarChar(36)
+  fechaHora          DateTime      @map("fecha_hora")
+  estatus            EstatusCita   @default(agendada)
+  canalAgendamiento  CanalAtencion @map("canal_agendamiento")
+  codigoConfirmacion String?       @unique @map("codigo_confirmacion") @db.VarChar(24)
+  confirmadaEn       DateTime?     @map("confirmada_en")
+  canceladaEn        DateTime?     @map("cancelada_en")
+  motivoCancelacion  String?       @map("motivo_cancelacion") @db.VarChar(255)
+  esDemo             Boolean       @default(false) @map("es_demo")
+  creadoEn           DateTime      @default(now()) @map("creado_en")
+  actualizadoEn      DateTime      @updatedAt @map("actualizado_en")
+
+  tramite Tramite @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  clinica Clinica @relation(fields: [clinicaId], references: [id], onDelete: Restrict)
+
+  @@index([tramiteId, estatus], map: "idx_citas_tramite_estatus")
+  @@index([clinicaId, fechaHora], map: "idx_citas_clinica_fecha")
+  @@index([estatus, fechaHora], map: "idx_citas_estatus_fecha")
+  @@map("citas")
+}
+
+/// Resultado clínico con jerarquía de liberación: captura -> revisión técnica -> validación médica -> liberado (#30).
+model Resultado {
+  id                    String           @id @default(cuid()) @db.VarChar(36)
+  tramiteId             String           @map("tramite_id") @db.VarChar(36)
+  estudioId             String           @map("estudio_id") @db.VarChar(36)
+  estatus               EstatusResultado @default(captura)
+  /// [SENSIBLE · AES-256-GCM] Contenido clínico/valores del estudio cifrados en reposo (LFPDPPP).
+  contenidoCifrado      String?          @map("contenido_cifrado") @db.LongText
+  /// [SENSIBLE · AES-256-GCM] Ubicación o clave cifrada del archivo PDF generado al liberar.
+  archivoUrlCifrada     String?          @map("archivo_url_cifrada") @db.Text
+  observacionesTecnicas String?          @map("observaciones_tecnicas") @db.Text
+  motivoRechazo         String?          @map("motivo_rechazo") @db.VarChar(255)
+  revisadoPorId         String?          @map("revisado_por") @db.VarChar(36)
+  revisadoEn            DateTime?        @map("revisado_en")
+  validadoPorId         String?          @map("validado_por") @db.VarChar(36)
+  validadoEn            DateTime?        @map("validado_en")
+  liberadoEn            DateTime?        @map("liberado_en")
+  esDemo                Boolean          @default(false) @map("es_demo")
+  creadoEn              DateTime         @default(now()) @map("creado_en")
+  actualizadoEn         DateTime         @updatedAt @map("actualizado_en")
+
+  tramite     Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  estudio     Estudio  @relation(fields: [estudioId], references: [id], onDelete: Restrict)
+  revisadoPor Usuario? @relation("ResultadoRevisor", fields: [revisadoPorId], references: [id], onDelete: SetNull)
+  validadoPor Usuario? @relation("ResultadoMedico", fields: [validadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([tramiteId, estatus], map: "idx_resultados_tramite_estatus")
+  @@index([estatus, actualizadoEn], map: "idx_resultados_estatus_fecha")
+  @@index([validadoPorId, estatus], map: "idx_resultados_medico_estatus")
+  @@map("resultados")
+}
+
+// ----------------------------------------------------------------------------
+// 4. Trazabilidad, Contact Center y auditoría (Pilar 3)
+// ----------------------------------------------------------------------------
+
+/// Registro resumido de interacciones entre el paciente y los canales (mensajes WA, llamadas, web/app).
+model Interaccion {
+  id                String        @id @default(cuid()) @db.VarChar(36)
+  pacienteId        String        @map("paciente_id") @db.VarChar(36)
+  tramiteId         String?       @map("tramite_id") @db.VarChar(36)
+  canal             CanalAtencion
+  actorTipo         TipoActor     @map("actor_tipo")
+  actorId           String?       @map("actor_id") @db.VarChar(64)
+  resumen           String        @db.Text
+  /// Identificador externo opcional (ej. `message.id` de WhatsApp Cloud API para deduplicación).
+  referenciaExterna String?       @map("referencia_externa") @db.VarChar(128)
+  metadatos         Json?
+  creadoEn          DateTime      @default(now()) @map("creado_en")
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  tramite  Tramite? @relation(fields: [tramiteId], references: [id], onDelete: SetNull)
+
+  @@unique([canal, referenciaExterna], map: "uq_interacciones_canal_ref")
+  @@index([pacienteId, creadoEn], map: "idx_interacciones_paciente_fecha")
+  @@index([tramiteId, creadoEn], map: "idx_interacciones_tramite_fecha")
+  @@index([canal, creadoEn], map: "idx_interacciones_canal_fecha")
+  @@map("interacciones")
+}
+
+/// Eventos de dominio inmutables + tabla outbox hacia Redis Streams (ADR 0003, #3, #14, #15).
+model Evento {
+  /// UUID v4 usado como `eventId` para garantizar idempotencia en todos los consumidores.
+  id                  String        @id @default(uuid()) @db.Char(36)
+  /// Convención `dominio.accion` (ej. `clinica.seleccionada`, `identidad.verificada`).
+  tipo                String        @db.VarChar(80)
+  version             Int           @default(1)
+  pacienteId          String?       @map("paciente_id") @db.VarChar(36)
+  tramiteId           String?       @map("tramite_id") @db.VarChar(36)
+  canal               CanalAtencion
+  actorTipo           TipoActor     @map("actor_tipo")
+  actorId             String?       @map("actor_id") @db.VarChar(64)
+  payload             Json
+  /// NULL mientras esté pendiente de publicarse en Redis Streams (patrón outbox).
+  publicadoEn         DateTime?     @map("publicado_en")
+  intentosPublicacion Int           @default(0) @map("intentos_publicacion")
+  creadoEn            DateTime      @default(now()) @map("creado_en")
+
+  paciente Paciente? @relation(fields: [pacienteId], references: [id], onDelete: SetNull)
+  tramite  Tramite?  @relation(fields: [tramiteId], references: [id], onDelete: SetNull)
+
+  @@index([pacienteId, creadoEn], map: "idx_eventos_paciente_fecha")
+  @@index([tramiteId, creadoEn], map: "idx_eventos_tramite_fecha")
+  @@index([tipo, creadoEn], map: "idx_eventos_tipo_fecha")
+  @@index([canal, creadoEn], map: "idx_eventos_canal_fecha")
+  @@index([publicadoEn, creadoEn], map: "idx_eventos_outbox_pendientes")
+  @@map("eventos")
+}
+
+/// Solicitudes de atención del Contact Center con SLA, prioridad, región y escalamiento (#16, #25).
+model Ticket {
+  id                 String            @id @default(cuid()) @db.VarChar(36)
+  folio              String            @unique @db.VarChar(32)
+  pacienteId         String            @map("paciente_id") @db.VarChar(36)
+  tramiteId          String?           @map("tramite_id") @db.VarChar(36)
+  canalOrigen        CanalAtencion     @map("canal_origen")
+  tipo               TipoTicket
+  prioridad          PrioridadTicket   @default(media)
+  estatus            EstatusTicket     @default(abierto)
+  nivelEscalamiento  NivelEscalamiento @default(ia) @map("nivel_escalamiento")
+  region             String            @db.VarChar(60)
+  asignadoAId        String?           @map("asignado_a") @db.VarChar(36)
+  /// Resumen automático generado por IA (máx. 5 líneas) al escalar a un humano (#25).
+  resumenIa          String?           @map("resumen_ia") @db.Text
+  motivoEscalamiento String?           @map("motivo_escalamiento") @db.VarChar(255)
+  slaVenceEn         DateTime          @map("sla_vence_en")
+  slaVencido         Boolean           @default(false) @map("sla_vencido")
+  resueltoEn         DateTime?         @map("resuelto_en")
+  esDemo             Boolean           @default(false) @map("es_demo")
+  creadoEn           DateTime          @default(now()) @map("creado_en")
+  actualizadoEn      DateTime          @updatedAt @map("actualizado_en")
+
+  paciente  Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  tramite   Tramite? @relation(fields: [tramiteId], references: [id], onDelete: SetNull)
+  asignadoA Usuario? @relation("TicketAsignado", fields: [asignadoAId], references: [id], onDelete: SetNull)
+
+  @@index([region, estatus, prioridad], map: "idx_tickets_region_estatus_prioridad")
+  @@index([asignadoAId, estatus], map: "idx_tickets_asignado_estatus")
+  @@index([estatus, slaVenceEn], map: "idx_tickets_sla")
+  @@index([pacienteId], map: "idx_tickets_paciente")
+  @@map("tickets")
+}
+
+/// Bitácora de auditoría de solo inserción (append-only). El usuario MySQL de la app no tiene UPDATE ni DELETE (#11).
+model Auditoria {
+  id            BigInt          @id @default(autoincrement())
+  usuarioId     String?         @map("usuario_id") @db.VarChar(36)
+  rol           RolUsuario?
+  accion        AccionAuditoria
+  entidad       String          @db.VarChar(60)
+  entidadId     String          @map("entidad_id") @db.VarChar(64)
+  /// Referencia indexada (sin FK en cascada) para filtrar auditoría por paciente sin perder historial.
+  pacienteId    String?         @map("paciente_id") @db.VarChar(36)
+  canal         CanalAtencion
+  ip            String?         @db.VarChar(45)
+  exitoso       Boolean         @default(true)
+  /// Metadatos seguros (método, ruta, status HTTP). Prohibido guardar PII o datos sensibles.
+  detalleSinPii Json?           @map("detalle_sin_pii")
+  creadoEn      DateTime        @default(now()) @map("creado_en")
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId, creadoEn], map: "idx_auditoria_usuario_fecha")
+  @@index([pacienteId, creadoEn], map: "idx_auditoria_paciente_fecha")
+  @@index([entidad, entidadId], map: "idx_auditoria_entidad")
+  @@index([canal, creadoEn], map: "idx_auditoria_canal_fecha")
+  @@index([creadoEn], map: "idx_auditoria_fecha")
+  @@map("auditoria")
+}

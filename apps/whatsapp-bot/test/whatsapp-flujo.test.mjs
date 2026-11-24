@@ -195,3 +195,16 @@ test('Issues #20 y #21: webhook Meta firmado, deduplicación, estados de entrega
     bot.server.close();
   }
 });
+
+test('Issue #20: en producción el bot exige credenciales reales de Meta', async () => {
+  const { validarConfiguracionProduccion } = require('../dist/main.js');
+  assert.deepEqual(validarConfiguracionProduccion({ NODE_ENV: 'development' }), []);
+  const faltantes = validarConfiguracionProduccion({
+    NODE_ENV: 'production',
+    WA_VERIFY_TOKEN: 'token-real',
+    WA_APP_SECRET: 'REEMPLAZAR_CON_APP_SECRET',
+  });
+  assert.ok(faltantes.includes('WA_APP_SECRET'));
+  assert.ok(faltantes.includes('WA_ACCESS_TOKEN'));
+  assert.ok(!faltantes.includes('WA_VERIFY_TOKEN'));
+});

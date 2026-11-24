@@ -12,6 +12,25 @@ const { crearAppNest } = require('../dist/main.js');
 const { validarTransicionTramite } = require('../dist/tramites/maquina-estados.js');
 const { USUARIOS_DEMO_SEMILLA } = require('../dist/auth/usuarios-demo.js');
 const { obtenerTokenServicioBot } = require('../dist/auth/guards.js');
+const { OtpService } = require('../dist/otp/otp.service.js');
+
+/** El bot (asesor_ia) debe verificar a la paciente por OTP antes de ver o tocar su trámite. */
+async function verificarOtpBot(app, url, headersBot, pacienteId) {
+  const otp = app.get(OtpService);
+  const sol = await fetch(`${url}/otp/solicitar`, {
+    method: 'POST',
+    headers: headersBot,
+    body: JSON.stringify({ pacienteId, canal: 'whatsapp' }),
+  });
+  assert.equal(sol.status, 201);
+  const despacho = otp.obtenerUltimoOtpSimulado(pacienteId);
+  const ver = await fetch(`${url}/otp/verificar`, {
+    method: 'POST',
+    headers: headersBot,
+    body: JSON.stringify({ pacienteId, canal: 'whatsapp', codigo: despacho.codigo }),
+  });
+  assert.equal(ver.status, 201);
+}
 
 test('Issue #12: pruebas unitarias de la máquina de estados (transiciones válidas e inválidas)', () => {
   // Inválida: saltar directo de cotizacion a cita_confirmada
@@ -76,7 +95,7 @@ test('Issues #12 y #13: recorrido de Ana (Web -> reinicio servidor -> WhatsApp -
     const creado = await crearRes.json();
     tramiteId = creado.id;
     folio = creado.folio;
-    assert.match(folio, /^SD-2026-\d{6}$/);
+    assert.match(folio, /^SD-\d{4}-\d{6}$/);
 
     // Autoguardado parcial en Web (elige clínica Puebla Centro y cierra navegador)
     const patchRes = await fetch(`${url1}/tramites/${tramiteId}/contexto`, {
@@ -122,6 +141,11 @@ test('Issues #12 y #13: recorrido de Ana (Web -> reinicio servidor -> WhatsApp -
       'Content-Type': 'application/json',
       'x-service-token': obtenerTokenServicioBot(),
     };
+
+    // Verificar antes de revelar: sin OTP el bot no puede ver el trámite de Ana
+    const sinOtp = await fetch(`${url2}/pacientes/pac_ana_demo/contexto`, { headers: headersBot });
+    assert.equal(sinOtp.status, 403);
+    await verificarOtpBot(app2, url2, headersBot, 'pac_ana_demo');
 
     // El contexto sobrevivió al reinicio
     const ctxRes = await fetch(`${url2}/pacientes/pac_ana_demo/contexto`, {
@@ -227,5 +251,84 @@ test('Issues #12 y #13: recorrido de Ana (Web -> reinicio servidor -> WhatsApp -
     await app2.close();
     delete process.env.TRAMITES_SNAPSHOT_PATH;
     if (fs.existsSync(snapshotTmp)) fs.unlinkSync(snapshotTmp);
+  }
+});
+
+test('Issues #12 y #13: todo cambio de estado emite evento, cancelar es terminal y la caché no sirve trámites cancelados', async () => {
+  const app = await crearAppNest({ silencioso: true });
+  await app.listen(0);
+  const url = await app.getUrl();
+  const { EventPublisherService } = require('../dist/common/eventos/event-publisher.service.js');
+  const eventos = app.get(EventPublisherService);
+  const asesor = USUARIOS_DEMO_SEMILLA.find((u) => u.rol === 'asesor');
+
+  try {
+    const { accessToken } = await (
+      await fetch(`${url}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: asesor.email, contrasena: asesor.contrasenaDemo }),
+      })
+    ).json();
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
+
+    // Sin estudio, elegir clínica NO debe saltarse la máquina de estados
+    const sinEstudio = await (
+      await fetch(`${url}/tramites`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ pacienteId: 'pac_demo_02', canal: 'call_center' }),
+      })
+    ).json();
+    const patchSinEstudio = await (
+      await fetch(`${url}/tramites/${sinEstudio.id}/contexto`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ canal: 'call_center', clinicaId: 'cli_09' }),
+      })
+    ).json();
+    assert.equal(patchSinEstudio.tramite.estado, 'cotizacion');
+    assert.equal(patchSinEstudio.tramite.contexto.clinica.id, 'cli_09');
+
+    // Transición sin evento de dominio propio (cotizacion -> registro) emite `tramite.avanzado`
+    const registro = await fetch(`${url}/tramites/${sinEstudio.id}/avanzar`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ estadoDestino: 'registro', canal: 'call_center' }),
+    });
+    assert.equal(registro.status, 201);
+    const avanzado = eventos
+      .obtenerEventosEmitidos()
+      .find((e) => e.tipo === 'tramite.avanzado' && e.tramiteId === sinEstudio.id);
+    assert.ok(avanzado, 'Falta el evento tramite.avanzado');
+    assert.equal(avanzado.datos.estadoNuevo, 'registro');
+
+    // Cancelar emite `tramite.cancelado` y deja el trámite terminal
+    const cancelarRes = await fetch(`${url}/tramites/${sinEstudio.id}/cancelar`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ canal: 'call_center', motivo: 'Paciente desistió' }),
+    });
+    assert.equal(cancelarRes.status, 201);
+    assert.equal((await cancelarRes.json()).estado, 'cancelado');
+    assert.ok(
+      eventos
+        .obtenerEventosEmitidos()
+        .some((e) => e.tipo === 'tramite.cancelado' && e.tramiteId === sinEstudio.id),
+    );
+
+    // Un trámite cancelado ya no acepta autoguardado
+    const patchCancelado = await fetch(`${url}/tramites/${sinEstudio.id}/contexto`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ canal: 'web', fechaTentativa: '2026-12-01T09:00:00Z' }),
+    });
+    assert.equal(patchCancelado.status, 409);
+
+    // La caché ya no presenta el trámite cancelado como "activo"
+    const ctx = await fetch(`${url}/pacientes/pac_demo_02/contexto`, { headers });
+    assert.equal(ctx.status, 404);
+  } finally {
+    await app.close();
   }
 });

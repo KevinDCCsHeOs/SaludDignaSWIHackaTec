@@ -10,6 +10,25 @@ const { crearAppNest } = require('../dist/main.js');
 const { EventBusService } = require('../dist/eventos/event-bus.service.js');
 const { USUARIOS_DEMO_SEMILLA } = require('../dist/auth/usuarios-demo.js');
 const { obtenerTokenServicioBot } = require('../dist/auth/guards.js');
+const { OtpService } = require('../dist/otp/otp.service.js');
+
+/** El bot (asesor_ia) debe verificar a la paciente por OTP antes de ver o tocar su trámite. */
+async function verificarOtpBot(app, url, headersBot, pacienteId) {
+  const otp = app.get(OtpService);
+  const sol = await fetch(`${url}/otp/solicitar`, {
+    method: 'POST',
+    headers: headersBot,
+    body: JSON.stringify({ pacienteId, canal: 'whatsapp' }),
+  });
+  assert.equal(sol.status, 201);
+  const despacho = otp.obtenerUltimoOtpSimulado(pacienteId);
+  const ver = await fetch(`${url}/otp/verificar`, {
+    method: 'POST',
+    headers: headersBot,
+    body: JSON.stringify({ pacienteId, canal: 'whatsapp', codigo: despacho.codigo }),
+  });
+  assert.equal(ver.status, 201);
+}
 
 test('Issues #14 y #15: Socket.IO con JWT en <2s, idempotencia/reintentos en EventBus y timeline cronológico', async () => {
   const app = await crearAppNest({ silencioso: true });
@@ -100,6 +119,7 @@ test('Issues #14 y #15: Socket.IO con JWT en <2s, idempotencia/reintentos en Eve
       'Content-Type': 'application/json',
       'x-service-token': obtenerTokenServicioBot(),
     };
+    await verificarOtpBot(app, url, headersBot, 'pac_ana_demo');
 
     const trm = await (
       await fetch(`${url}/tramites`, {

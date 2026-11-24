@@ -7,7 +7,8 @@
 | [Diagramas](arquitectura/diagramas/) | Fuentes Mermaid (`.mmd`) y exportaciones SVG/PNG | #1 |
 | [Modelo de datos](modelo-datos/README.md) | Diagrama ER, esquema Prisma, migración inicial MySQL 8 y campos sensibles | #2 |
 | [Catálogo de eventos](eventos.md) | Eventos omnicanal (Zod), payloads de ejemplo, emisores, consumidores y versionado | #3 |
-| Privacidad | Aviso, consentimiento, cifrado y derechos ARCO | #10 (pendiente) |
+| [Privacidad (LFPDPPP)](privacidad.md) | Aviso simplificado e integral, consentimiento, cifrado AES-256-GCM, enmascarado y derechos ARCO | #10 |
+| [RBAC y credenciales demo](rbac-y-credenciales.md) | Matriz de permisos por rol y usuarios ficticios de prueba | #6 |
 | Normatividad y riesgos | NOM, ISO y matriz de riesgos | #34 (pendiente) |
 | Secuencias y flujo de datos | Diagramas de secuencia detallados entre canales | #41 (pendiente) |
 

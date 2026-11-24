@@ -1,8 +1,13 @@
 import http from 'node:http';
 import type { CanalAtencion } from '@salud-digna/shared';
 import { TIPOS_EVENTO } from '@salud-digna/shared';
+import {
+  esIntencionRecuperacionAcceso,
+  manejarRecuperacionAccesoWhatsapp,
+} from './flujos/recuperacion-acceso';
 
 export const CANAL_BOT: CanalAtencion = 'whatsapp';
+export { esIntencionRecuperacionAcceso, manejarRecuperacionAccesoWhatsapp };
 
 export function crearEstadoSaludBot() {
   return {
@@ -10,6 +15,7 @@ export function crearEstadoSaludBot() {
     canal: CANAL_BOT,
     estado: 'ok',
     eventosConocidos: TIPOS_EVENTO.length,
+    flujosHabilitados: ['recuperacion_acceso'],
     timestamp: new Date().toISOString(),
   };
 }

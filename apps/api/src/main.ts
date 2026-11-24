@@ -1,43 +1,29 @@
-import http from 'node:http';
-import { CANALES_ATENCION, ESTADOS_TRAMITE, TIPOS_EVENTO } from '@salud-digna/shared';
+import 'reflect-metadata';
+import type { INestApplication } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
+import { crearEstadoSaludApi } from './health.controller';
+import { SanitizedLogger } from './privacidad/sanitizador-logs';
 
-export interface ApiHealthStatus {
-  servicio: 'api';
-  estado: 'ok';
-  canalesSoportados: readonly string[];
-  estadosTramite: number;
-  eventosCatalogo: number;
-  timestamp: string;
-}
+export { crearEstadoSaludApi };
 
-export function crearEstadoSaludApi(): ApiHealthStatus {
-  return {
-    servicio: 'api',
-    estado: 'ok',
-    canalesSoportados: CANALES_ATENCION,
-    estadosTramite: ESTADOS_TRAMITE.length,
-    eventosCatalogo: TIPOS_EVENTO.length,
-    timestamp: new Date().toISOString(),
-  };
-}
-
-export function crearServidorApi(): http.Server {
-  return http.createServer((req, res) => {
-    if (req.url === '/health' && req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify(crearEstadoSaludApi()));
-      return;
-    }
-
-    res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ error: 'Ruta no encontrada' }));
+export async function crearAppNest(opciones?: { silencioso?: boolean }): Promise<INestApplication> {
+  const app = await NestFactory.create(AppModule, {
+    logger: opciones?.silencioso ? false : new SanitizedLogger('SaludDignaAPI'),
   });
+  app.use(cookieParser());
+  app.enableCors({
+    origin: process.env.WEB_BASE_URL ?? true,
+    credentials: true,
+  });
+  return app;
 }
 
 if (require.main === module) {
   const puerto = Number(process.env.PORT ?? 3000);
-  const servidor = crearServidorApi();
-  servidor.listen(puerto, () => {
-    console.log(`[api] Núcleo escuchando en http://localhost:${puerto} (GET /health)`);
+  void crearAppNest().then(async (app) => {
+    await app.listen(puerto);
+    console.log(`[api] Núcleo NestJS escuchando en http://localhost:${puerto} (GET /health)`);
   });
 }

@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { CanalAtencion, EventoOmnicanal, TipoActor } from '@salud-digna/shared';
 import { CANALES_ATENCION, TIPOS_ACTOR } from '@salud-digna/shared';
 import { z } from 'zod';
+import { PersistenciaService } from '../common/persistencia/persistencia.service';
+import { KeyValueStoreService } from '../common/redis/kv-store.service';
 import { EventBusService } from '../eventos/event-bus.service';
 import { IdentityResolverService } from '../identidad/identidad.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -39,6 +41,22 @@ export interface NotificacionPushDespachada {
   cuerpo: string;
   tipoEvento: EventoOmnicanal['tipo'];
   enviadoEn: string;
+  /** `true` si Expo Push Service aceptó el envío; `false` si falló o el envío real está apagado. */
+  entregadoAExpo: boolean;
+}
+
+const URL_EXPO_PUSH = 'https://exp.host/--/api/v2/push/send';
+/** Los tokens de push se guardan en Redis (AOF en producción): sobreviven reinicios sin migración. */
+const TTL_PUSH_TOKENS_SEG = 180 * 24 * 60 * 60;
+const MAX_PUSH_DESPACHADOS_EN_MEMORIA = 500;
+
+function esTokenExpoReal(token: string): boolean {
+  return /^Expo(nent)?PushToken\[.+\]$/.test(token);
+}
+
+/** El envío real a Expo se apaga en pruebas o con `EXPO_PUSH_DESHABILITADO=1`. */
+function envioPushRealHabilitado(): boolean {
+  return process.env.NODE_ENV !== 'test' && process.env.EXPO_PUSH_DESHABILITADO !== '1';
 }
 
 export const RegistrarLlamadaSchema = z.object({
@@ -77,9 +95,9 @@ export const RegistrarPushTokenSchema = z.object({
 });
 
 @Injectable()
-export class CanalesService {
+export class CanalesService implements OnModuleInit {
+  private readonly logger = new Logger('Canales');
   private readonly interacciones: InteraccionRegistro[] = [];
-  private readonly pushTokens = new Map<string, RegistroPushToken[]>();
   private readonly pushDespachados: NotificacionPushDespachada[] = [];
 
   constructor(
@@ -87,41 +105,126 @@ export class CanalesService {
     private readonly tickets: TicketsService,
     private readonly timeline: TimelineService,
     private readonly eventBus: EventBusService,
+    private readonly persistencia: PersistenciaService,
+    private readonly kv: KeyValueStoreService,
   ) {
     // Consumidor de notificaciones push para la app móvil Expo (#22)
-    this.eventBus.suscribir('notificaciones', (evento) => {
+    this.eventBus.suscribir('notificaciones', async (evento) => {
       if (!evento.pacienteId) return;
       if (evento.tipo !== 'cita.confirmada' && evento.tipo !== 'resultado.liberado') return;
-      const tokens = this.pushTokens.get(evento.pacienteId) ?? [];
-      for (const reg of tokens) {
-        const titulo =
-          evento.tipo === 'cita.confirmada'
-            ? 'Tu cita está confirmada'
-            : 'Tus resultados ya están listos';
-        const cuerpo =
-          evento.tipo === 'cita.confirmada'
-            ? `Cita confirmada para ${evento.datos.fechaHora}. Consulta los detalles en la app.`
-            : 'Ya puedes consultar tus resultados liberados desde la app Salud Digna.';
-        this.pushDespachados.push({
-          id: `push_${randomUUID().slice(0, 10)}`,
-          pacienteId: evento.pacienteId,
-          expoPushToken: reg.expoPushToken,
-          titulo,
-          cuerpo,
-          tipoEvento: evento.tipo,
-          enviadoEn: new Date().toISOString(),
-        });
-      }
+      const titulo =
+        evento.tipo === 'cita.confirmada'
+          ? 'Tu cita está confirmada'
+          : 'Tus resultados ya están listos';
+      const cuerpo =
+        evento.tipo === 'cita.confirmada'
+          ? `Cita confirmada para ${evento.datos.fechaHora}. Consulta los detalles en la app.`
+          : 'Ya puedes consultar tus resultados liberados desde la app Salud Digna.';
+      await this.enviarPush(evento.pacienteId, evento.tipo, titulo, cuerpo);
     });
+  }
+
+  /**
+   * Recarga llamadas, correos y mensajes desde MySQL y los vuelve a poner en la línea de tiempo,
+   * para que sobrevivan un reinicio del API.
+   */
+  async onModuleInit(): Promise<void> {
+    const desdeBd = await this.persistencia.cargarInteracciones();
+    if (!desdeBd) return;
+    this.interacciones.splice(0, this.interacciones.length, ...desdeBd);
+    for (const i of desdeBd) {
+      this.timeline.registrarInteraccion({
+        id: i.id,
+        pacienteId: i.pacienteId,
+        tramiteId: i.tramiteId,
+        canal: i.canal,
+        actorTipo: i.actorTipo,
+        resumen: i.resumen,
+        fecha: i.creadoEn,
+      });
+    }
+  }
+
+  private claveTokens(pacienteId: string): string {
+    return `push:${pacienteId}`;
+  }
+
+  private async leerTokens(pacienteId: string): Promise<RegistroPushToken[]> {
+    const crudo = await this.kv.get(this.claveTokens(pacienteId));
+    if (!crudo) return [];
+    try {
+      return JSON.parse(crudo) as RegistroPushToken[];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Envía la notificación a cada dispositivo del paciente mediante Expo Push Service y deja un
+   * registro (sin texto clínico: solo títulos genéricos).
+   */
+  private async enviarPush(
+    pacienteId: string,
+    tipoEvento: EventoOmnicanal['tipo'],
+    titulo: string,
+    cuerpo: string,
+  ): Promise<void> {
+    const tokens = await this.leerTokens(pacienteId);
+    if (tokens.length === 0) return;
+
+    const reales = tokens.filter((t) => esTokenExpoReal(t.expoPushToken));
+    let aceptado = false;
+    if (reales.length > 0 && envioPushRealHabilitado()) {
+      try {
+        const respuesta = await fetch(URL_EXPO_PUSH, {
+          method: 'POST',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            reales.map((t) => ({
+              to: t.expoPushToken,
+              title: titulo,
+              body: cuerpo,
+              sound: 'default',
+            })),
+          ),
+          signal: AbortSignal.timeout(5000),
+        });
+        aceptado = respuesta.ok;
+        if (!respuesta.ok) {
+          this.logger.warn(`Expo Push respondió HTTP ${respuesta.status}`);
+        }
+      } catch (error) {
+        this.logger.warn(
+          `No se pudo contactar a Expo Push: ${error instanceof Error ? error.name : 'error'}`,
+        );
+      }
+    }
+
+    const ahora = new Date().toISOString();
+    for (const reg of tokens) {
+      this.pushDespachados.push({
+        id: `push_${randomUUID().slice(0, 10)}`,
+        pacienteId,
+        expoPushToken: reg.expoPushToken,
+        titulo,
+        cuerpo,
+        tipoEvento,
+        enviadoEn: ahora,
+        entregadoAExpo: aceptado && esTokenExpoReal(reg.expoPushToken),
+      });
+    }
+    if (this.pushDespachados.length > MAX_PUSH_DESPACHADOS_EN_MEMORIA) {
+      this.pushDespachados.splice(0, this.pushDespachados.length - MAX_PUSH_DESPACHADOS_EN_MEMORIA);
+    }
   }
 
   /**
    * Registra una llamada de Call Center y la publica en la línea de tiempo unificada (#19, #23).
    */
-  registrarLlamada(
+  async registrarLlamada(
     entrada: z.input<typeof RegistrarLlamadaSchema>,
     asesor: { id: string; tipo: TipoActor },
-  ): InteraccionRegistro {
+  ): Promise<InteraccionRegistro> {
     const parsed = RegistrarLlamadaSchema.safeParse(entrada);
     if (!parsed.success) {
       throw new BadRequestException({
@@ -132,7 +235,7 @@ export class CanalesService {
 
     const d = parsed.data;
     const resumen = `Llamada Call Center (${d.motivo}) — ${d.resultado}. Notas: ${d.notas}`;
-    const interaccion = this.guardarInteraccion({
+    const interaccion = await this.guardarInteraccion({
       pacienteId: d.pacienteId,
       tramiteId: d.tramiteId ?? null,
       canal: 'call_center',
@@ -194,7 +297,7 @@ export class CanalesService {
       pacienteId = registro.pacienteId;
     }
 
-    const interaccion = this.guardarInteraccion({
+    const interaccion = await this.guardarInteraccion({
       pacienteId,
       tramiteId: d.tramiteId ?? null,
       canal: 'email',
@@ -250,10 +353,10 @@ export class CanalesService {
   /**
    * Registra interacciones desde canales externos (ej. WhatsApp Cloud API, #20) con deduplicación por `referenciaExterna`.
    */
-  registrarInteraccionCanal(entrada: z.input<typeof RegistrarInteraccionSchema>): {
+  async registrarInteraccionCanal(entrada: z.input<typeof RegistrarInteraccionSchema>): Promise<{
     duplicado: boolean;
     interaccion: InteraccionRegistro;
-  } {
+  }> {
     const parsed = RegistrarInteraccionSchema.safeParse(entrada);
     if (!parsed.success) {
       throw new BadRequestException('Datos de interacción inválidos');
@@ -269,7 +372,7 @@ export class CanalesService {
       }
     }
 
-    const interaccion = this.guardarInteraccion({
+    const interaccion = await this.guardarInteraccion({
       pacienteId: d.pacienteId,
       tramiteId: d.tramiteId ?? null,
       canal: d.canal,
@@ -293,16 +396,17 @@ export class CanalesService {
     return { duplicado: false, interaccion };
   }
 
-  actualizarEstadoEntrega(
+  async actualizarEstadoEntrega(
     canal: CanalAtencion,
     referenciaExterna: string,
     estado: EstadoEntregaMensaje,
-  ): { actualizado: boolean; referenciaExterna: string; estado: EstadoEntregaMensaje } {
+  ): Promise<{ actualizado: boolean; referenciaExterna: string; estado: EstadoEntregaMensaje }> {
     const encontrada = this.interacciones.find(
       (i) => i.canal === canal && i.referenciaExterna === referenciaExterna,
     );
     if (encontrada) {
       encontrada.estadoEntrega = estado;
+      await this.persistencia.guardarInteraccion(encontrada);
       return { actualizado: true, referenciaExterna, estado };
     }
     return { actualizado: false, referenciaExterna, estado };
@@ -312,34 +416,32 @@ export class CanalesService {
     return this.interacciones.filter((i) => i.pacienteId === pacienteId);
   }
 
-  registrarPushToken(entrada: z.input<typeof RegistrarPushTokenSchema>): RegistroPushToken {
+  async registrarPushToken(
+    entrada: z.input<typeof RegistrarPushTokenSchema>,
+  ): Promise<RegistroPushToken> {
     const parsed = RegistrarPushTokenSchema.safeParse(entrada);
     if (!parsed.success) {
       throw new BadRequestException('Token push inválido');
     }
 
-    const lista = this.pushTokens.get(parsed.data.pacienteId) ?? [];
-    const existente = lista.find((t) => t.expoPushToken === parsed.data.expoPushToken);
+    const { pacienteId, expoPushToken, plataforma } = parsed.data;
+    const lista = await this.leerTokens(pacienteId);
     const ahora = new Date().toISOString();
-    if (existente) {
-      existente.plataforma = parsed.data.plataforma;
-      existente.actualizadoEn = ahora;
-      return existente;
+    let registro = lista.find((t) => t.expoPushToken === expoPushToken);
+    if (registro) {
+      registro.plataforma = plataforma;
+      registro.actualizadoEn = ahora;
+    } else {
+      registro = { pacienteId, expoPushToken, plataforma, actualizadoEn: ahora };
+      lista.push(registro);
     }
 
-    const nuevo: RegistroPushToken = {
-      pacienteId: parsed.data.pacienteId,
-      expoPushToken: parsed.data.expoPushToken,
-      plataforma: parsed.data.plataforma,
-      actualizadoEn: ahora,
-    };
-    lista.push(nuevo);
-    this.pushTokens.set(parsed.data.pacienteId, lista);
-    return nuevo;
+    await this.kv.set(this.claveTokens(pacienteId), JSON.stringify(lista), TTL_PUSH_TOKENS_SEG);
+    return registro;
   }
 
-  listarPushTokens(pacienteId: string): RegistroPushToken[] {
-    return this.pushTokens.get(pacienteId) ?? [];
+  listarPushTokens(pacienteId: string): Promise<RegistroPushToken[]> {
+    return this.leerTokens(pacienteId);
   }
 
   obtenerPushDespachados(pacienteId?: string): NotificacionPushDespachada[] {
@@ -348,9 +450,9 @@ export class CanalesService {
       : [...this.pushDespachados];
   }
 
-  private guardarInteraccion(
+  private async guardarInteraccion(
     datos: Omit<InteraccionRegistro, 'id' | 'estadoEntrega' | 'creadoEn'>,
-  ): InteraccionRegistro {
+  ): Promise<InteraccionRegistro> {
     const registro: InteraccionRegistro = {
       id: `int_${randomUUID().slice(0, 12)}`,
       ...datos,
@@ -358,6 +460,7 @@ export class CanalesService {
       creadoEn: new Date().toISOString(),
     };
     this.interacciones.push(registro);
+    await this.persistencia.guardarInteraccion(registro);
     return registro;
   }
 }

@@ -195,7 +195,31 @@ export function crearServidorBot(opciones: OpcionesServidorBot = {}) {
   };
 }
 
+/**
+ * En producción no se permite arrancar con credenciales de Meta por defecto: sin `WA_APP_SECRET`
+ * cualquiera podría inyectar mensajes falsos y sin `WA_VERIFY_TOKEN` el handshake sería público.
+ */
+export function validarConfiguracionProduccion(env: NodeJS.ProcessEnv = process.env): string[] {
+  if (env.NODE_ENV !== 'production') return [];
+  const requeridas = [
+    'WA_VERIFY_TOKEN',
+    'WA_APP_SECRET',
+    'WA_ACCESS_TOKEN',
+    'WA_PHONE_NUMBER_ID',
+    'API_BASE_URL',
+    'API_SERVICE_TOKEN',
+  ];
+  return requeridas.filter((nombre) => !env[nombre] || env[nombre]?.startsWith('REEMPLAZAR'));
+}
+
 if (require.main === module) {
+  const faltantes = validarConfiguracionProduccion();
+  if (faltantes.length > 0) {
+    console.error(
+      `[whatsapp-bot] Faltan variables de entorno en producción: ${faltantes.join(', ')}`,
+    );
+    process.exit(1);
+  }
   const puerto = Number(process.env.PORT ?? 3001);
   const { server } = crearServidorBot();
   server.listen(puerto, () => {

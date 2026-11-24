@@ -87,7 +87,7 @@ export class CanalesController {
     await this.acceso.verificar(req.usuario, pacienteId, req.headers['x-canal']);
     return {
       pacienteId,
-      tokens: this.canales.listarPushTokens(pacienteId),
+      tokens: await this.canales.listarPushTokens(pacienteId),
       notificacionesEnviadas: this.canales.obtenerPushDespachados(pacienteId),
     };
   }

@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import type { CanalAtencion, EventoOmnicanal, TipoActor } from '@salud-digna/shared';
+import { PersistenciaService } from '../common/persistencia/persistencia.service';
 import { EventBusService } from '../eventos/event-bus.service';
 
 export interface EntradaTimeline {
@@ -136,18 +137,34 @@ export function traducirEventoATimeline(evento: EventoOmnicanal): EntradaTimelin
 }
 
 @Injectable()
-export class TimelineService {
+export class TimelineService implements OnModuleInit {
   private readonly porPaciente = new Map<string, EntradaTimeline[]>();
+  private readonly idsRegistrados = new Set<string>();
 
-  constructor(private readonly eventBus: EventBusService) {
+  constructor(
+    private readonly eventBus: EventBusService,
+    private readonly persistencia: PersistenciaService,
+  ) {
     // Consumidor idempotente en el bus de eventos (#14, #15)
     this.eventBus.suscribir('timeline', (evento) => {
-      if (!evento.pacienteId) return;
-      const lista = this.porPaciente.get(evento.pacienteId) ?? [];
-      if (lista.some((e) => e.eventId === evento.eventId)) return;
-      lista.push(traducirEventoATimeline(evento));
-      this.porPaciente.set(evento.pacienteId, lista);
+      this.registrar(evento);
     });
+  }
+
+  /** Reconstruye la línea de tiempo desde la tabla `eventos` al arrancar (sobrevive reinicios, #15). */
+  async onModuleInit(): Promise<void> {
+    const historial = await this.persistencia.cargarEventos();
+    for (const evento of historial ?? []) {
+      this.registrar(evento);
+    }
+  }
+
+  private registrar(evento: EventoOmnicanal): void {
+    if (!evento.pacienteId || this.idsRegistrados.has(evento.eventId)) return;
+    this.idsRegistrados.add(evento.eventId);
+    const lista = this.porPaciente.get(evento.pacienteId) ?? [];
+    lista.push(traducirEventoATimeline(evento));
+    this.porPaciente.set(evento.pacienteId, lista);
   }
 
   consultar(
@@ -164,7 +181,10 @@ export class TimelineService {
     nextCursor: string | null;
     items: EntradaTimeline[];
   } {
-    const limit = Math.min(Math.max(Number(opciones?.limit ?? 50), 1), 200);
+    const limiteSolicitado = Number(opciones?.limit ?? 50);
+    const limit = Number.isFinite(limiteSolicitado)
+      ? Math.min(Math.max(Math.trunc(limiteSolicitado), 1), 200)
+      : 50;
     const todos = [...(this.porPaciente.get(pacienteId) ?? [])].sort(
       (a, b) => Date.parse(a.fecha) - Date.parse(b.fecha),
     );

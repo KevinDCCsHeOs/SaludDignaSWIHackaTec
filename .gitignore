@@ -54,6 +54,7 @@ backups/
 *.sql
 *.sql.gz
 !apps/api/prisma/migrations/**/*.sql
+!infra/mysql/**/*.sql
 infra/data/
 infra/letsencrypt/
 

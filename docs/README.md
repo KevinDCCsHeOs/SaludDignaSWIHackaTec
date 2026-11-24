@@ -9,6 +9,7 @@
 | [Catálogo de eventos](eventos.md) | Eventos omnicanal (Zod), payloads de ejemplo, emisores, consumidores y versionado | #3 |
 | [Privacidad (LFPDPPP)](privacidad.md) | Aviso simplificado e integral, consentimiento, cifrado AES-256-GCM, enmascarado y derechos ARCO | #10 |
 | [RBAC y credenciales demo](rbac-y-credenciales.md) | Matriz de permisos por rol y usuarios ficticios de prueba | #6 |
+| [Datos demo y escenario](datos-demo.md) | 30 estudios, 10 clínicas, 15 pacientes ficticios y comandos `seed` / `demo:reset` | #17 |
 | Normatividad y riesgos | NOM, ISO y matriz de riesgos | #34 (pendiente) |
 | Secuencias y flujo de datos | Diagramas de secuencia detallados entre canales | #41 (pendiente) |
 

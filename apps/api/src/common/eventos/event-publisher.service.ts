@@ -11,17 +11,22 @@ export type EventoSinIdNiFecha<T extends EventoOmnicanal = EventoOmnicanal> = Om
 };
 
 /**
- * Publicador centralizado de eventos de dominio validados contra `@salud-digna/shared`.
- * Registra los eventos en memoria y los persiste en tabla outbox si hay persistencia configurada;
- * en el issue #14 se conecta directamente con Redis Streams sin cambiar los emisores.
+ * Fachada transversal de publicación de eventos validados contra `@salud-digna/shared`.
+ * El `EventBusService` (#14) se conecta como despachador para distribuir a Redis Streams,
+ * timeline, tiempo real (Socket.IO), métricas, tickets y notificaciones.
  */
 @Injectable()
 export class EventPublisherService {
   private readonly eventosEmitidos: EventoOmnicanal[] = [];
   private persistidorOutbox?: (evento: EventoOmnicanal) => Promise<void>;
+  private despachadorBus?: (evento: EventoOmnicanal) => Promise<void>;
 
   configurarPersistidor(fn: (evento: EventoOmnicanal) => Promise<void>): void {
     this.persistidorOutbox = fn;
+  }
+
+  configurarDespachadorBus(fn: (evento: EventoOmnicanal) => Promise<void>): void {
+    this.despachadorBus = fn;
   }
 
   async publicar<T extends EventoOmnicanal>(entrada: EventoSinIdNiFecha<T>): Promise<T> {
@@ -37,8 +42,12 @@ export class EventPublisherService {
       try {
         await this.persistidorOutbox(validado);
       } catch {
-        // El evento permanece validado en memoria si la BD no está conectada en modo local/test
+        // Conservado en outbox en memoria si MySQL no está conectado en local/test
       }
+    }
+
+    if (this.despachadorBus) {
+      await this.despachadorBus(validado);
     }
 
     return validado;

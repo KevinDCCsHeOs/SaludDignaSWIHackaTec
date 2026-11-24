@@ -42,12 +42,15 @@ Todo cambio de estado en la plataforma emite un evento con el patrón `dominio.a
 | `estudio.seleccionado` | v1 | `contexto` | `timeline`, `realtime`, `metricas` | El paciente elige el estudio a realizar y se autoguarda en el contexto. |
 | `clinica.seleccionada` | v1 | `contexto` | `timeline`, `realtime`, `metricas` | El paciente selecciona clínica y el contexto persiste el avance antes de confirmar. |
 | `tramite.pausado` | v1 | `tramites` | `timeline`, `realtime`, `metricas` | El trámite queda pausado conservando estado previo y datos pendientes. |
+| `tramite.avanzado` | v1 | `tramites` | `timeline`, `realtime`, `metricas` | Transición genérica de la máquina de estados sin evento de dominio específico (ej. registro, pago, en proceso, cierre). |
+| `tramite.cancelado` | v1 | `tramites` | `timeline`, `realtime`, `notificaciones`, `metricas` | El trámite se cancela (estado terminal) y, si existía, se cancela su cita. |
 | `canal.cambiado` | v1 | `contexto` | `timeline`, `realtime`, `metricas` | El paciente continúa el mismo trámite desde un canal distinto al último usado. |
 | `tramite.retomado` | v1 | `tramites` | `timeline`, `realtime`, `metricas` | Se reanuda un trámite pausado exactamente en el paso donde quedó. |
 | `cita.agendada` | v1 | `tramites` | `timeline`, `realtime`, `notificaciones`, `metricas` | Se reserva fecha y hora para el estudio en la clínica elegida. |
 | `cita.confirmada` | v1 | `tramites` | `timeline`, `realtime`, `notificaciones`, `metricas` | La cita queda confirmada y se notifica al paciente por su canal preferido/app. |
 | `ticket.creado` | v1 | `tickets` | `timeline`, `realtime`, `tickets`, `metricas` | Se abre un ticket de atención con prioridad, región y fecha límite de SLA. |
 | `ticket.escalado` | v1 | `tickets` | `timeline`, `realtime`, `notificaciones`, `metricas`, `auditoria` | Un ticket sube de nivel en la jerarquía del Contact Center (IA → asesor → asesor pro). |
+| `ticket.asignado` | v1 | `tickets` | `timeline`, `realtime`, `metricas`, `auditoria` | Un ticket se asigna (o reasigna) a un asesor; automático por menor carga regional o manual. |
 | `ticket.sla_vencido` | v1 | `tickets` | `realtime`, `notificaciones`, `metricas` | Alerta emitida por el job de SLA cuando un ticket excede su tiempo objetivo. |
 | `ticket.cerrado` | v1 | `tickets` | `timeline`, `realtime`, `metricas` | El ticket queda resuelto y cerrado con registro de tiempo de atención. |
 | `resultado.liberado` | v1 | `resultados` | `timeline`, `realtime`, `notificaciones`, `metricas`, `auditoria` | Tras revisión técnica y validación médica, el resultado queda visible para el paciente. |
@@ -309,6 +312,62 @@ Todo cambio de estado en la plataforma emite un evento con el patrón `dominio.a
 }
 ```
 
+### `tramite.avanzado` (v1)
+
+- **Descripción:** Transición genérica de la máquina de estados sin evento de dominio específico (ej. registro, pago, en proceso, cierre).
+- **Emisor:** `tramites`
+- **Consumidores:** `timeline`, `realtime`, `metricas`
+
+```json
+{
+  "eventId": "10000000-0000-4000-8000-000000000019",
+  "tipo": "tramite.avanzado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "call_center",
+  "actor": {
+    "tipo": "asesor",
+    "id": "usr_asesor_01"
+  },
+  "timestamp": "2026-11-24T16:05:00Z",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "estadoAnterior": "cita_confirmada",
+    "estadoNuevo": "pago_factura",
+    "pasoActual": "pago_factura"
+  }
+}
+```
+
+### `tramite.cancelado` (v1)
+
+- **Descripción:** El trámite se cancela (estado terminal) y, si existía, se cancela su cita.
+- **Emisor:** `tramites`
+- **Consumidores:** `timeline`, `realtime`, `notificaciones`, `metricas`
+
+```json
+{
+  "eventId": "10000000-0000-4000-8000-000000000020",
+  "tipo": "tramite.cancelado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "app",
+  "actor": {
+    "tipo": "paciente",
+    "id": "pac_ana_demo"
+  },
+  "timestamp": "2026-11-25T08:00:00Z",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "estadoPrevio": "cita_agendada",
+    "citaCancelada": true,
+    "motivo": "La paciente reprogramará más adelante"
+  }
+}
+```
+
 ### `canal.cambiado` (v1)
 
 - **Descripción:** El paciente continúa el mismo trámite desde un canal distinto al último usado.
@@ -478,6 +537,36 @@ Todo cambio de estado en la plataforma emite un evento con el patrón `dominio.a
     "nivelNuevo": "asesor",
     "motivo": "El paciente solicitó confirmar preparación con un asesor humano",
     "asignadoAId": "usr_asesor_01"
+  }
+}
+```
+
+### `ticket.asignado` (v1)
+
+- **Descripción:** Un ticket se asigna (o reasigna) a un asesor; automático por menor carga regional o manual.
+- **Emisor:** `tickets`
+- **Consumidores:** `timeline`, `realtime`, `metricas`, `auditoria`
+
+```json
+{
+  "eventId": "10000000-0000-4000-8000-000000000021",
+  "tipo": "ticket.asignado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "asesor",
+    "id": "usr_asesor_01"
+  },
+  "timestamp": "2026-11-24T15:18:00Z",
+  "datos": {
+    "ticketId": "tkt_101",
+    "folio": "TK-2026-000042",
+    "asignadoAId": "usr_asesor_02",
+    "asignadoAnteriorId": "usr_asesor_01",
+    "nivel": "asesor",
+    "automatico": false
   }
 }
 ```

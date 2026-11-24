@@ -71,3 +71,10 @@ test('rechaza payloads inválidos (UUID malformado, canal inexistente o datos in
   });
   assert.equal(invalidoDatos.success, false);
 });
+
+test('incluye los eventos de transición genérica, cancelación y asignación (#12, #16)', () => {
+  const tipos = new Set(CATALOGO_EVENTOS.map((e) => e.tipo));
+  for (const requerido of ['tramite.avanzado', 'tramite.cancelado', 'ticket.asignado']) {
+    assert.ok(tipos.has(requerido), `Falta el evento: ${requerido}`);
+  }
+});

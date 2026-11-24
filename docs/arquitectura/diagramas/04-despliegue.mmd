@@ -1,0 +1,35 @@
+%% Vista de despliegue — VPS Hostinger KVM 2 (2 vCPU, 8 GB RAM)
+flowchart TB
+  classDef ext fill:#6b7280,stroke:#374151,color:#fff
+  classDef pub fill:#0b6e4f,stroke:#073b2a,color:#fff
+  classDef priv fill:#1d4ed8,stroke:#1e3a8a,color:#fff
+  classDef datos fill:#b45309,stroke:#78350f,color:#fff
+
+  U["Navegador / App"]:::ext
+  META["Meta WhatsApp Cloud API"]:::ext
+  GH["GitHub Actions<br/><small>deploy por SSH desde main</small>"]:::ext
+
+  subgraph VPS["VPS Ubuntu · Docker Compose · UFW (22, 80, 443)"]
+    NG["nginx :80/:443<br/><small>TLS Let's Encrypt · WebSocket upgrade</small>"]:::pub
+    subgraph red["red interna de Docker"]
+      WEBC["web :3002<br/><small>app.dominio</small>"]:::priv
+      APIC["api :3000<br/><small>api.dominio</small>"]:::priv
+      BOTC["whatsapp-bot :3001<br/><small>wa.dominio/webhook</small>"]:::priv
+      MY[("mysql :3306<br/><small>volumen persistente</small>")]:::datos
+      RE[("redis :6379<br/><small>AOF activado</small>")]:::datos
+      BK["backup (cron)<br/><small>mysqldump diario</small>"]:::priv
+    end
+  end
+
+  OFF[("Copia externa<br/><small>almacenamiento cPanel</small>")]:::ext
+
+  U -->|"HTTPS / WSS"| NG
+  META -->|"HTTPS webhook"| NG
+  NG --> WEBC & APIC & BOTC
+  WEBC --> APIC
+  BOTC --> APIC
+  APIC --> MY & RE
+  BOTC --> RE
+  BK --> MY
+  BK -->|"rsync/SFTP"| OFF
+  GH -->|"SSH: git pull + compose up"| VPS

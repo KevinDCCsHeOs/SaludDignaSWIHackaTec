@@ -1,0 +1,31 @@
+%% Cobertura del recorrido de Ana en el modelo de datos (cotización -> cita -> resultados)
+flowchart LR
+  subgraph E1["1 · Web (Cotización y pausa)"]
+    W1["Paciente + Consentimiento\nIdentidadCanal (web)"]
+    W2["Tramite (estado = seleccion_clinica)\ncontexto JSON + PasoTramite #1..#3"]
+    W3["Evento (cotizacion.iniciada,\nclinica.seleccionada)"]
+    W1 --> W2 --> W3
+  end
+
+  subgraph E2["2 · WhatsApp (OTP y cita)"]
+    WA1["IdentidadCanal (whatsapp)\nverificado_en tras OTP"]
+    WA2["Tramite actualizado\nultimo_canal = whatsapp\nestado = cita_agendada"]
+    WA3["Cita (agendada) + Interaccion\n+ Evento (identidad.verificada,\ncanal.cambiado, cita.agendada)"]
+    WA1 --> WA2 --> WA3
+  end
+
+  subgraph E3["3 · Call Center y App"]
+    CC1["Ticket (resumen_ia, SLA)\nAuditoria (lectura asesor)"]
+    CC2["Cita (confirmada)\nTramite (cita_confirmada -> en_proceso)"]
+    CC3["Evento (cita.confirmada)\nApp consulta Tramite + Timeline"]
+    CC1 --> CC2 --> CC3
+  end
+
+  subgraph E4["4 · Proceso y Resultados"]
+    R1["Resultado (captura ->\nrevision_tecnica -> validacion_medica)"]
+    R2["contenido_cifrado y\narchivo_url_cifrada (AES-256-GCM)"]
+    R3["Resultado (liberado)\nTramite (resultados_liberados -> cerrado)\nEvento (resultado.liberado)"]
+    R1 --> R2 --> R3
+  end
+
+  E1 --> E2 --> E3 --> E4

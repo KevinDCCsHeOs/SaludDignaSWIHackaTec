@@ -5,7 +5,7 @@
 | [Arquitectura de la solución](arquitectura/README.md) | Vistas C4 (contexto, contenedores, módulos), comunicación, pilares, recorrido de Ana, despliegue, seguridad, riesgos | #1 |
 | [Decisiones de arquitectura (ADR)](arquitectura/adr/README.md) | Por qué se eligió cada tecnología y qué alternativas se descartaron | #1 |
 | [Diagramas](arquitectura/diagramas/) | Fuentes Mermaid (`.mmd`) y exportaciones SVG/PNG | #1 |
-| Modelo de datos | Diagrama ER y esquema Prisma | #2 (pendiente) |
+| [Modelo de datos](modelo-datos/README.md) | Diagrama ER, esquema Prisma, migración inicial MySQL 8 y campos sensibles | #2 |
 | Catálogo de eventos | Eventos, payloads, emisores y consumidores | #3 (pendiente) |
 | Privacidad | Aviso, consentimiento, cifrado y derechos ARCO | #10 (pendiente) |
 | Normatividad y riesgos | NOM, ISO y matriz de riesgos | #34 (pendiente) |

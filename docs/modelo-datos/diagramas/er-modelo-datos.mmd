@@ -1,0 +1,241 @@
+%% Diagrama Entidad-Relación — Salud Digna Omnicanal (MySQL 8 · utf8mb4)
+%% Issue #2: 02. [ARQ] Modelo de datos (MySQL)
+%% Nota: Campos con comentario "SENSIBLE AES-256-GCM" se cifran en capa de aplicación (#10).
+erDiagram
+  ROL {
+    varchar id PK
+    enum clave UK
+    varchar nombre
+    varchar descripcion
+    json permisos
+    datetime creado_en
+  }
+
+  USUARIO {
+    varchar id PK
+    varchar email UK
+    varchar nombre
+    varchar hash
+    enum rol FK
+    varchar region
+    boolean activo
+    boolean es_demo
+    datetime ultimo_acceso_en
+    datetime creado_en
+  }
+
+  PACIENTE {
+    varchar id PK
+    varchar nombre
+    varchar apellidos
+    text fecha_nac_cifrada "SENSIBLE AES-256-GCM"
+    text curp_cifrado "SENSIBLE AES-256-GCM"
+    char curp_hash UK "SHA-256 + pepper"
+    text datos_fiscales_cifrados "SENSIBLE AES-256-GCM"
+    varchar email
+    varchar telefono_e164
+    enum canal_preferido
+    enum idioma
+    varchar region
+    boolean es_demo
+    varchar usuario_id FK
+    datetime creado_en
+  }
+
+  IDENTIDAD_CANAL {
+    varchar id PK
+    varchar paciente_id FK
+    enum canal "UK con identificador"
+    varchar identificador "UK con canal"
+    datetime verificado_en
+    varchar metodo_verificacion
+    boolean es_principal
+    datetime creado_en
+  }
+
+  CONSENTIMIENTO {
+    varchar id PK
+    varchar paciente_id FK
+    enum tipo
+    varchar version_aviso
+    enum canal
+    datetime otorgado_en
+    datetime revocado_en
+    varchar ip
+  }
+
+  CLINICA {
+    varchar id PK
+    varchar codigo UK
+    varchar nombre
+    varchar direccion
+    decimal lat
+    decimal lng
+    varchar region
+    varchar telefono
+    json horario
+    enum estatus
+    varchar mensaje_estatus
+    boolean es_demo
+  }
+
+  ESTUDIO {
+    varchar id PK
+    varchar codigo UK
+    varchar nombre
+    enum categoria
+    decimal precio
+    text preparacion
+    int duracion_minutos
+    int vigencia_dias
+    boolean activo
+    boolean es_demo
+  }
+
+  TRAMITE {
+    varchar id PK
+    varchar folio UK
+    varchar paciente_id FK
+    varchar estudio_id FK
+    varchar clinica_id FK
+    enum tipo
+    enum estado
+    enum estado_anterior
+    varchar paso_actual
+    json contexto
+    enum canal_origen
+    enum ultimo_canal
+    varchar region
+    datetime vence_en
+    boolean es_demo
+    datetime actualizado_en
+  }
+
+  PASO_TRAMITE {
+    varchar id PK
+    varchar tramite_id FK
+    int orden
+    varchar clave_paso
+    enum estatus
+    enum canal
+    json datos
+    datetime iniciado_en
+    datetime completado_en
+  }
+
+  CITA {
+    varchar id PK
+    varchar tramite_id FK
+    varchar clinica_id FK
+    datetime fecha_hora
+    enum estatus
+    enum canal_agendamiento
+    varchar codigo_confirmacion UK
+    datetime confirmada_en
+    datetime cancelada_en
+    boolean es_demo
+  }
+
+  RESULTADO {
+    varchar id PK
+    varchar tramite_id FK
+    varchar estudio_id FK
+    enum estatus
+    longtext contenido_cifrado "SENSIBLE AES-256-GCM"
+    text archivo_url_cifrada "SENSIBLE AES-256-GCM"
+    text observaciones_tecnicas
+    varchar motivo_rechazo
+    varchar revisado_por FK
+    datetime revisado_en
+    varchar validado_por FK
+    datetime validado_en
+    datetime liberado_en
+    boolean es_demo
+  }
+
+  INTERACCION {
+    varchar id PK
+    varchar paciente_id FK
+    varchar tramite_id FK
+    enum canal
+    enum actor_tipo
+    varchar actor_id
+    text resumen
+    varchar referencia_externa
+    json metadatos
+    datetime creado_en
+  }
+
+  EVENTO {
+    char id PK "UUID v4 idempotente"
+    varchar tipo
+    int version
+    varchar paciente_id FK
+    varchar tramite_id FK
+    enum canal
+    enum actor_tipo
+    varchar actor_id
+    json payload
+    datetime publicado_en "Outbox Redis Streams"
+    int intentos_publicacion
+    datetime creado_en
+  }
+
+  TICKET {
+    varchar id PK
+    varchar folio UK
+    varchar paciente_id FK
+    varchar tramite_id FK
+    enum canal_origen
+    enum tipo
+    enum prioridad
+    enum estatus
+    enum nivel_escalamiento
+    varchar region
+    varchar asignado_a FK
+    text resumen_ia
+    datetime sla_vence_en
+    boolean sla_vencido
+    boolean es_demo
+  }
+
+  AUDITORIA {
+    bigint id PK "Append-only"
+    varchar usuario_id FK
+    enum rol
+    enum accion
+    varchar entidad
+    varchar entidad_id
+    varchar paciente_id "Ref indexada sin cascade"
+    enum canal
+    varchar ip
+    boolean exitoso
+    json detalle_sin_pii
+    datetime creado_en
+  }
+
+  ROL ||--o{ USUARIO : "define permisos de"
+  USUARIO |o--o| PACIENTE : "autentica cuenta"
+  PACIENTE ||--o{ IDENTIDAD_CANAL : "se identifica en canales"
+  PACIENTE ||--o{ CONSENTIMIENTO : "otorga LFPDPPP"
+  PACIENTE ||--o{ TRAMITE : "inicia"
+  PACIENTE ||--o{ INTERACCION : "sostiene"
+  PACIENTE ||--o{ EVENTO : "genera"
+  PACIENTE ||--o{ TICKET : "abre"
+
+  ESTUDIO ||--o{ TRAMITE : "cotizado en"
+  CLINICA ||--o{ TRAMITE : "seleccionada en"
+  TRAMITE ||--o{ PASO_TRAMITE : "registra avance"
+  TRAMITE ||--o{ CITA : "agenda"
+  TRAMITE ||--o{ RESULTADO : "produce"
+  TRAMITE ||--o{ INTERACCION : "vincula"
+  TRAMITE ||--o{ EVENTO : "emite"
+  TRAMITE ||--o{ TICKET : "escala"
+
+  CLINICA ||--o{ CITA : "atiende"
+  ESTUDIO ||--o{ RESULTADO : "corresponde a"
+
+  USUARIO ||--o{ TICKET : "atiende asignado"
+  USUARIO ||--o{ RESULTADO : "revisa tecnicamente"
+  USUARIO ||--o{ RESULTADO : "valida medicamente"
+  USUARIO ||--o{ AUDITORIA : "registra acceso"

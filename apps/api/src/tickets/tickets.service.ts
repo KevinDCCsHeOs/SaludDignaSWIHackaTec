@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   OnModuleDestroy,
@@ -21,6 +22,8 @@ import {
   TIPOS_TICKET,
 } from '@salud-digna/shared';
 import { z } from 'zod';
+import { USUARIOS_DEMO_SEMILLA } from '../auth/usuarios-demo';
+import { PersistenciaService } from '../common/persistencia/persistencia.service';
 import { EventBusService } from '../eventos/event-bus.service';
 
 export interface TicketRegistro {
@@ -75,15 +78,14 @@ interface AsesorRegional {
   region: string;
 }
 
-const ASESORES_DISPONIBLES_DEMO: readonly AsesorRegional[] = [
-  { id: 'usr_asesor_01', rol: 'asesor', region: 'Puebla' },
-  { id: 'usr_asesor_02', rol: 'asesor', region: 'Puebla' },
-  { id: 'usr_asesor_pro_01', rol: 'asesor_pro', region: 'Puebla' },
-  { id: 'usr_asesor_cdmx_01', rol: 'asesor', region: 'CDMX' },
-  { id: 'usr_asesor_pro_cdmx_01', rol: 'asesor_pro', region: 'CDMX' },
-  { id: 'usr_asesor_mty_01', rol: 'asesor', region: 'Monterrey' },
-  { id: 'usr_asesor_pro_mty_01', rol: 'asesor_pro', region: 'Monterrey' },
-];
+/** Asesores asignables: los mismos usuarios demo que existen en auth y en MySQL (llave foránea). */
+const ASESORES_DISPONIBLES_DEMO: readonly AsesorRegional[] = USUARIOS_DEMO_SEMILLA.flatMap((u) =>
+  (u.rol === 'asesor' || u.rol === 'asesor_pro') && u.region
+    ? [{ id: u.id, rol: u.rol, region: u.region }]
+    : [],
+);
+
+const ESTATUS_TICKET_FINALIZADO: readonly EstatusTicket[] = ['resuelto', 'cerrado'];
 
 @Injectable()
 export class TicketsService implements OnModuleInit, OnModuleDestroy {
@@ -91,9 +93,25 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
   private secuenciaFolio = 1;
   private intervaloSla: NodeJS.Timeout | null = null;
 
-  constructor(private readonly eventBus: EventBusService) {}
+  constructor(
+    private readonly eventBus: EventBusService,
+    private readonly persistencia: PersistenciaService,
+  ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
+    // Recargar tickets desde MySQL (sobreviven reinicios, #16)
+    const desdeBd = await this.persistencia.cargarTickets();
+    if (desdeBd) {
+      this.tickets.clear();
+      let maximo = 0;
+      for (const t of desdeBd) {
+        this.tickets.set(t.id, t);
+        const numero = Number(t.folio.split('-').at(-1));
+        if (Number.isFinite(numero) && numero > maximo) maximo = numero;
+      }
+      this.secuenciaFolio = Math.max(this.secuenciaFolio, maximo + 1);
+    }
+
     // Job cada minuto en ejecución normal (desactivado en test para control determinista)
     if (process.env.NODE_ENV !== 'test') {
       this.intervaloSla = setInterval(() => {
@@ -111,7 +129,40 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private generarFolio(): string {
-    return `TK-2026-${String(this.secuenciaFolio++).padStart(6, '0')}`;
+    return `TK-${new Date().getFullYear()}-${String(this.secuenciaFolio++).padStart(6, '0')}`;
+  }
+
+  private asegurarActivo(ticket: TicketRegistro, accion: string): void {
+    if (ESTATUS_TICKET_FINALIZADO.includes(ticket.estatus)) {
+      throw new ConflictException(
+        `No se puede ${accion} el ticket ${ticket.folio}: ya está ${ticket.estatus}`,
+      );
+    }
+  }
+
+  private async publicarAsignacion(
+    ticket: TicketRegistro,
+    asignadoAnteriorId: string | null,
+    automatico: boolean,
+    actor: { tipo: TipoActor; id: string },
+  ): Promise<void> {
+    if (!ticket.asignadoAId) return;
+    await this.eventBus.publish({
+      tipo: 'ticket.asignado',
+      version: 1,
+      pacienteId: ticket.pacienteId,
+      tramiteId: ticket.tramiteId,
+      canal: ticket.canalOrigen,
+      actor,
+      datos: {
+        ticketId: ticket.id,
+        folio: ticket.folio,
+        asignadoAId: ticket.asignadoAId,
+        asignadoAnteriorId,
+        nivel: ticket.nivelEscalamiento,
+        automatico,
+      },
+    });
   }
 
   private calcularPrioridadPorDefecto(tipo: TipoTicket): PrioridadTicket {
@@ -235,6 +286,7 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
     };
 
     this.tickets.set(ticket.id, ticket);
+    await this.persistencia.guardarTicket(ticket);
 
     await this.eventBus.publish({
       tipo: 'ticket.creado',
@@ -253,11 +305,24 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
+    if (ticket.asignadoAId) {
+      await this.publicarAsignacion(ticket, null, true, { tipo: 'sistema', id: 'balanceo-carga' });
+    }
+
     return ticket;
   }
 
-  asignar(idOFolio: string, asesorId?: string): TicketRegistro {
+  async asignar(
+    idOFolio: string,
+    asesorId: string | undefined,
+    actor: { tipo: TipoActor; id: string },
+  ): Promise<TicketRegistro> {
     const ticket = this.obtenerPorIdOFolio(idOFolio);
+    this.asegurarActivo(ticket, 'asignar');
+    if (asesorId && !ASESORES_DISPONIBLES_DEMO.some((a) => a.id === asesorId)) {
+      throw new BadRequestException(`El asesor ${asesorId} no existe o no atiende tickets`);
+    }
+    const asignadoAnteriorId = ticket.asignadoAId;
     const elegido =
       asesorId ??
       this.seleccionarAsesorConMenorCarga(
@@ -275,6 +340,8 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
       ticket.nivelEscalamiento = 'asesor';
     }
     ticket.actualizadoEn = new Date().toISOString();
+    await this.persistencia.guardarTicket(ticket);
+    await this.publicarAsignacion(ticket, asignadoAnteriorId, !asesorId, actor);
     return ticket;
   }
 
@@ -292,7 +359,13 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const ticket = this.obtenerPorIdOFolio(idOFolio);
+    this.asegurarActivo(ticket, 'escalar');
     const nivelAnterior = ticket.nivelEscalamiento;
+    if (nivelAnterior === 'asesor_pro') {
+      throw new ConflictException(
+        `El ticket ${ticket.folio} ya está en el nivel más alto (asesor_pro); no se puede escalar más`,
+      );
+    }
     const nivelNuevo: NivelEscalamiento = nivelAnterior === 'ia' ? 'asesor' : 'asesor_pro';
 
     const nuevoAsignado =
@@ -310,6 +383,7 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
       ticket.resumenIa = parsed.data.resumenIa;
     }
     ticket.actualizadoEn = new Date().toISOString();
+    await this.persistencia.guardarTicket(ticket);
 
     await this.eventBus.publish({
       tipo: 'ticket.escalado',
@@ -342,6 +416,9 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const ticket = this.obtenerPorIdOFolio(idOFolio);
+    if (ticket.estatus === 'cerrado') {
+      throw new ConflictException(`El ticket ${ticket.folio} ya está cerrado`);
+    }
     const ahora = new Date();
     const minutos = Math.max(
       0,
@@ -352,6 +429,7 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
     ticket.resueltoEn = ahora.toISOString();
     ticket.estatus = parsed.data.cerrar ? 'cerrado' : 'resuelto';
     ticket.actualizadoEn = ahora.toISOString();
+    await this.persistencia.guardarTicket(ticket);
 
     await this.eventBus.publish({
       tipo: 'ticket.cerrado',
@@ -385,6 +463,7 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
         ticket.slaVencido = true;
         ticket.actualizadoEn = new Date(ahoraMs).toISOString();
         vencidos.push(ticket);
+        await this.persistencia.guardarTicket(ticket);
 
         await this.eventBus.publish({
           tipo: 'ticket.sla_vencido',

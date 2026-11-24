@@ -72,7 +72,7 @@ test('Issue #16: tickets desde WhatsApp, balanceo por carga regional, escalamien
         }),
       })
     ).json();
-    assert.match(t1.folio, /^TK-2026-\d{6}$/);
+    assert.match(t1.folio, /^TK-\d{4}-\d{6}$/);
     assert.equal(t1.asignadoAId, 'usr_asesor_01');
 
     const t2 = await (
@@ -138,6 +138,28 @@ test('Issue #16: tickets desde WhatsApp, balanceo por carga regional, escalamien
     assert.equal(escalado.asignadoAId, 'usr_asesor_pro_01');
     assert.equal(escalado.estatus, 'escalado');
 
+    // No se puede escalar más allá de asesor_pro
+    const escalarDeMas = await fetch(`${url}/tickets/${t1.id}/escalar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenAsesor}`,
+      },
+      body: JSON.stringify({ motivo: 'Otro escalamiento' }),
+    });
+    assert.equal(escalarDeMas.status, 409);
+
+    // La paciente consulta el estatus de su ticket por folio; no puede ver uno ajeno
+    const propio = await fetch(`${url}/tickets/${t1.folio}`, {
+      headers: { Authorization: `Bearer ${tokenAna}` },
+    });
+    assert.equal(propio.status, 200);
+    assert.equal((await propio.json()).estatus, 'escalado');
+    const ajeno = await fetch(`${url}/tickets/${t2.id}`, {
+      headers: { Authorization: `Bearer ${tokenAna}` },
+    });
+    assert.equal(ajeno.status, 403);
+
     // 5. Job de SLA vencido emite `ticket.sla_vencido`
     const futuroMs = Date.now() + 25 * 60 * 60 * 1000;
     const vencidos = await ticketsService.verificarSlasVencidos(futuroMs);
@@ -156,6 +178,18 @@ test('Issue #16: tickets desde WhatsApp, balanceo por carga regional, escalamien
     assert.equal(cerrarRes.status, 201);
     const cerrado = await cerrarRes.json();
     assert.equal(cerrado.estatus, 'cerrado');
+    assert.equal(cerrado.resolucion, 'Indicaciones de ayuno confirmadas y cita agendada');
+
+    // Un ticket cerrado no se vuelve a cerrar ni a escalar
+    const cerrarOtraVez = await fetch(`${url}/tickets/${t1.id}/resolver`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenAsesor}`,
+      },
+      body: JSON.stringify({ resolucion: 'Duplicado' }),
+    });
+    assert.equal(cerrarOtraVez.status, 409);
   } finally {
     await app.close();
   }

@@ -1,10 +1,11 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import type { ConsumidorEvento, EventoOmnicanal } from '@salud-digna/shared';
 import Redis from 'ioredis';
 import {
   EventPublisherService,
   EventoSinIdNiFecha,
 } from '../common/eventos/event-publisher.service';
+import { PersistenciaService } from '../common/persistencia/persistencia.service';
 
 export type HandlerConsumidorEvento = (evento: EventoOmnicanal) => Promise<void> | void;
 
@@ -17,24 +18,33 @@ export interface RegistroOutboxEvento {
 
 const STREAM_EVENTOS = 'eventos';
 const MAX_REINTENTOS_CONSUMIDOR = 3;
+const MAX_REGISTROS_OUTBOX_EN_MEMORIA = 2000;
+const MAX_IDS_PROCESADOS_POR_GRUPO = 10_000;
+const INTERVALO_REINTENTOS_MS = 30_000;
 
 /**
  * Bus de eventos omnicanal (#14, ADR 0003):
- * - Persiste en outbox antes de distribuir.
+ * - Persiste en la tabla `eventos` de MySQL (outbox) antes de distribuir.
  * - Publica en Redis Streams (`XADD eventos * ...`) cuando Redis está activo.
  * - Gestiona grupos de consumo (`timeline`, `tickets`, `metricas`, `notificaciones`, `realtime`)
  *   con idempotencia estricta por `(grupo, eventId)` y reintentos ante fallos.
+ * - Cada 30 s reintenta consumidores fallidos y republica en Redis los eventos pendientes
+ *   (`publicadoEn = NULL` en MySQL).
  */
 @Injectable()
-export class EventBusService implements OnModuleDestroy {
+export class EventBusService implements OnModuleInit, OnModuleDestroy {
   private readonly outbox = new Map<string, RegistroOutboxEvento>();
   private readonly suscriptores = new Map<ConsumidorEvento, HandlerConsumidorEvento[]>();
   private readonly procesadosPorGrupo = new Map<ConsumidorEvento, Set<string>>();
   private readonly fallosPendientes: Array<{ grupo: ConsumidorEvento; evento: EventoOmnicanal }> =
     [];
   private redis: Redis | null = null;
+  private intervaloReintentos: NodeJS.Timeout | null = null;
 
-  constructor(private readonly publisher: EventPublisherService) {
+  constructor(
+    private readonly publisher: EventPublisherService,
+    private readonly persistencia: PersistenciaService,
+  ) {
     if (process.env.NODE_ENV !== 'test' && process.env.REDIS_URL) {
       this.redis = new Redis(process.env.REDIS_URL, {
         lazyConnect: true,
@@ -44,10 +54,24 @@ export class EventBusService implements OnModuleDestroy {
       this.redis.on('error', () => undefined);
     }
 
+    // Outbox en MySQL: el evento queda guardado antes de distribuirse (ADR 0003)
+    this.publisher.configurarPersistidor(async (evento) => {
+      await this.persistencia.guardarEvento(evento);
+    });
+
     // Conectar todos los módulos que usan `EventPublisherService` (#6–#11) al bus
     this.publisher.configurarDespachadorBus(async (evento) => {
       await this.distribuirEventoValidado(evento);
     });
+  }
+
+  onModuleInit(): void {
+    if (process.env.NODE_ENV === 'test') return;
+    this.intervaloReintentos = setInterval(() => {
+      void this.reprocesarFallosPendientes();
+      void this.republicarPendientesEnRedis();
+    }, INTERVALO_REINTENTOS_MS);
+    this.intervaloReintentos.unref();
   }
 
   suscribir(grupo: ConsumidorEvento, handler: HandlerConsumidorEvento): void {
@@ -76,36 +100,86 @@ export class EventBusService implements OnModuleDestroy {
         streamId: null,
       };
       this.outbox.set(evento.eventId, registro);
+      this.recortarOutboxEnMemoria();
     }
 
-    registro.intentosPublicacion += 1;
-
-    // Publicación en Redis Streams (`XADD eventos * ...`)
-    if (this.redis) {
-      try {
-        if (this.redis.status === 'wait') await this.redis.connect();
-        const streamId = await this.redis.xadd(
-          STREAM_EVENTOS,
-          '*',
-          'eventId',
-          evento.eventId,
-          'tipo',
-          evento.tipo,
-          'canal',
-          evento.canal,
-          'payload',
-          JSON.stringify(evento),
-        );
-        registro.streamId = streamId;
-      } catch {
-        // Si Redis falla temporalmente, el evento queda en outbox para republicación
-      }
+    if (registro.publicadoEn === null) {
+      await this.publicarEnStream(registro);
     }
-
-    registro.publicadoEn = new Date().toISOString();
 
     for (const [grupo, handlers] of this.suscriptores.entries()) {
       await this.entregarAGrupo(grupo, handlers, evento);
+    }
+  }
+
+  /**
+   * `XADD eventos * ...`. Solo marca el evento como publicado si Redis lo aceptó; si Redis
+   * no está configurado (desarrollo o pruebas) se considera publicado en memoria.
+   */
+  private async publicarEnStream(registro: RegistroOutboxEvento): Promise<boolean> {
+    const evento = registro.evento;
+    registro.intentosPublicacion += 1;
+
+    if (!this.redis) {
+      registro.publicadoEn = new Date().toISOString();
+      await this.persistencia.marcarEventoPublicado(evento.eventId);
+      return true;
+    }
+
+    try {
+      if (this.redis.status === 'wait') await this.redis.connect();
+      registro.streamId = await this.redis.xadd(
+        STREAM_EVENTOS,
+        '*',
+        'eventId',
+        evento.eventId,
+        'tipo',
+        evento.tipo,
+        'canal',
+        evento.canal,
+        'payload',
+        JSON.stringify(evento),
+      );
+      registro.publicadoEn = new Date().toISOString();
+      await this.persistencia.marcarEventoPublicado(evento.eventId);
+      return true;
+    } catch {
+      // Queda pendiente (publicadoEn = NULL) para el job de republicación
+      await this.persistencia.registrarIntentoFallido(evento.eventId);
+      return false;
+    }
+  }
+
+  /**
+   * Republica en Redis Streams los eventos que quedaron pendientes en MySQL (outbox, ADR 0003).
+   * Los consumidores internos ya los procesaron; aquí solo se completa la publicación externa.
+   */
+  async republicarPendientesEnRedis(): Promise<number> {
+    if (!this.redis) return 0;
+    const pendientes = await this.persistencia.eventosPendientesDePublicar();
+    let publicados = 0;
+    for (const evento of pendientes) {
+      const registro: RegistroOutboxEvento = this.outbox.get(evento.eventId) ?? {
+        evento,
+        publicadoEn: null,
+        intentosPublicacion: 0,
+        streamId: null,
+      };
+      if (await this.publicarEnStream(registro)) publicados += 1;
+    }
+    return publicados;
+  }
+
+  private recortarOutboxEnMemoria(): void {
+    const sobrantes = this.outbox.size - MAX_REGISTROS_OUTBOX_EN_MEMORIA;
+    if (sobrantes <= 0) return;
+    let eliminados = 0;
+    for (const [eventId, registro] of this.outbox) {
+      if (eliminados >= sobrantes) break;
+      if (registro.publicadoEn !== null) {
+        this.outbox.delete(eventId);
+        eliminados += 1;
+      }
     }
   }
 
@@ -128,6 +202,10 @@ export class EventBusService implements OnModuleDestroy {
           await handler(evento);
         }
         procesados.add(evento.eventId);
+        if (procesados.size > MAX_IDS_PROCESADOS_POR_GRUPO) {
+          const masAntiguo = procesados.values().next().value;
+          if (masAntiguo !== undefined) procesados.delete(masAntiguo);
+        }
         return true;
       } catch {
         if (intento === MAX_REINTENTOS_CONSUMIDOR) {
@@ -173,6 +251,10 @@ export class EventBusService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    if (this.intervaloReintentos) {
+      clearInterval(this.intervaloReintentos);
+      this.intervaloReintentos = null;
+    }
     if (this.redis) {
       await this.redis.quit().catch(() => undefined);
     }

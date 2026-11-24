@@ -12,14 +12,18 @@ Requisitos: MySQL 8 activo (local con `docker compose -f infra/docker-compose.de
 # Sembrado idempotente (puede ejecutarse múltiples veces sin duplicar registros)
 npm run seed
 
-# Reinicio rápido del escenario demo (borra registros esDemo=true y vuelve a sembrar)
+# Reinicio rápido del escenario demo (borra registros esDemo=true, sus eventos e
+# interacciones, y vuelve a sembrar)
 npm run demo:reset
 ```
+
+> Después de `demo:reset`, reinicia el contenedor del API: los trámites, tickets y la línea de
+> tiempo se cargan desde MySQL al arrancar.
 
 ## 2. Resumen del conjunto sembrado
 
 - **7 roles RBAC** con matriz de permisos cargada en `roles`.
-- **11 usuarios demo**: los 7 roles del sistema + 5 médicos ficticios distribuidos en 3 regiones.
+- **16 usuarios demo**: los 7 roles del sistema, 5 asesores adicionales para balancear tickets por región (Puebla, CDMX y Monterrey) y 4 médicos ficticios más en 3 regiones.
 - **30 estudios** (`laboratorio`, `ultrasonido`, `rayos_x`, `mastografia`, `papanicolaou`, `electrocardiograma`, `densitometria`, `tomografia`, `resonancia`, `optometria`, `nutricion`) con precio aproximado, duración, vigencia y preparación.
 - **10 clínicas en 3 regiones**: Puebla (`3`), CDMX (`4`) y Monterrey (`3`), incluyendo 2 clínicas con estatus `retraso` para demostrar banners de incidencias (#31).
 - **15 pacientes ficticios**, incluyendo perfiles en español (`es`), inglés (`en`) y náhuatl (`nah`), todos con CURP y fecha de nacimiento cifrados en reposo con AES-256-GCM.
@@ -32,6 +36,9 @@ npm run demo:reset
 | `asesor_ia` | `ia.bot@demo.saluddigna.local` | `DemoIaSistema2026!` | — | Bot WhatsApp / IA |
 | `asesor` | `asesor.puebla@demo.saluddigna.local` | `DemoAsesor2026!` | Puebla | Contact Center nivel 1 |
 | `asesor_pro` | `asesor.pro@demo.saluddigna.local` | `DemoAsesorPro2026!` | Puebla | Tickets escalados y merge |
+| `asesor` | `asesor2.puebla@demo.saluddigna.local` | `DemoAsesor2026!` | Puebla | Segundo asesor para balanceo de carga |
+| `asesor` / `asesor_pro` | `asesor.cdmx@…` / `asesor.pro.cdmx@…` | `DemoAsesor2026!` / `DemoAsesorPro2026!` | CDMX | Cola de tickets de CDMX |
+| `asesor` / `asesor_pro` | `asesor.mty@…` / `asesor.pro.mty@…` | `DemoAsesor2026!` / `DemoAsesorPro2026!` | Monterrey | Cola de tickets de Monterrey |
 | `medico` | `medico.puebla@demo.saluddigna.local` | `DemoMedico2026!` | Puebla | Validación médica (hay 4 médicos adicionales en Puebla, CDMX y Monterrey) |
 | `revisor_tecnico` | `revisor.lab@demo.saluddigna.local` | `DemoRevisor2026!` | Puebla | Revisión técnica |
 | `admin` | `admin@demo.saluddigna.local` | `DemoAdmin2026!` | — | Auditoría, Patient Journey y KPIs |
@@ -39,6 +46,6 @@ npm run demo:reset
 ## 4. Escenario estrella: recorrido de Ana López
 
 1. **Web:** Ana (`pac_ana_demo`) inicia cotización del estudio `est_us_abd` (*Ultrasonido abdominal*, \$450) y elige la clínica `cli_09` (*Salud Digna Puebla Centro*), dejando `pendientes: ["confirmar_fecha", "aceptar_preparacion"]`. Cierra sin confirmar.
-2. **WhatsApp:** escribe desde `+52 1 222 123 4567` → `POST /identidad/resolver` devuelve `requiere_verificacion` → verifica con OTP → consulta `GET /pacientes/pac_ana_demo/contexto` (obtiene el resumen automático sin repetir datos) → agenda cita (`POST /tramites/:id/avanzar` → `cita_agendada`).
+2. **WhatsApp:** escribe desde `+52 1 222 123 4567` → `POST /identidad/resolver` devuelve `requiere_verificacion` → verifica con OTP (sin sesión OTP vigente el bot recibe `403` en trámites, contexto y timeline) → consulta `GET /pacientes/pac_ana_demo/contexto` (obtiene el resumen automático sin repetir datos) → agenda cita (`POST /tramites/:id/avanzar` → `cita_agendada`).
 3. **Call Center:** Ana llama con duda de preparación; el asesor verifica preguntas (`1995-04-12` + `4567`), ve el timeline completo (`GET /pacientes/pac_ana_demo/timeline`), atiende su ticket y confirma la cita (`cita_confirmada`).
 4. **App y tiempo real:** la consola y la app reciben los eventos por Socket.IO en < 2 s y muestran la cita confirmada con trazabilidad completa Web → WhatsApp → Call Center → App.

@@ -28,6 +28,19 @@ const NOMBRES_ROL: Record<RolUsuario, { nombre: string; descripcion: string }> =
 
 async function limpiarDatosDemo(prisma: PrismaClient): Promise<void> {
   console.log('[seed] --reset activado: limpiando registros demo (esDemo = true)...');
+  // Eventos e interacciones de pacientes/trámites demo: si quedaran, el timeline reconstruido
+  // al arrancar el API mostraría historial de demos anteriores (#15, #17).
+  await prisma.evento.deleteMany({
+    where: {
+      OR: [
+        { paciente: { esDemo: true } },
+        { tramite: { esDemo: true } },
+        // Huérfanos: sus llaves quedaron en NULL al borrar demos previos
+        { pacienteId: null, tramiteId: null },
+      ],
+    },
+  });
+  await prisma.interaccion.deleteMany({ where: { paciente: { esDemo: true } } });
   await prisma.resultado.deleteMany({ where: { esDemo: true } });
   await prisma.cita.deleteMany({ where: { esDemo: true } });
   await prisma.ticket.deleteMany({ where: { esDemo: true } });

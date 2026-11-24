@@ -123,7 +123,10 @@ export class PrismaService implements OnModuleDestroy {
   readonly client: ReturnType<typeof crearClientePrismaConCifrado> | null;
 
   constructor(private readonly cifrado: CifradoService) {
-    if (process.env.DATABASE_URL && process.env.NODE_ENV !== 'test') {
+    // En pruebas la BD se desactiva salvo que una prueba de integración la pida (PRISMA_EN_PRUEBAS=1)
+    const habilitadoEnEntorno =
+      process.env.NODE_ENV !== 'test' || process.env.PRISMA_EN_PRUEBAS === '1';
+    if (process.env.DATABASE_URL && habilitadoEnEntorno) {
       this.base = new PrismaClient();
       this.client = crearClientePrismaConCifrado(this.base, this.cifrado);
     } else {

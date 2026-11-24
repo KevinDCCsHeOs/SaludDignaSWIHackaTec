@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { EventoOmnicanal, validarEventoOmnicanal } from '@salud-digna/shared';
 
+const MAX_EVENTOS_EN_MEMORIA = 1000;
+
 export type EventoSinIdNiFecha<T extends EventoOmnicanal = EventoOmnicanal> = Omit<
   T,
   'eventId' | 'timestamp'
@@ -37,12 +39,15 @@ export class EventPublisherService {
     };
     const validado = validarEventoOmnicanal(candidato) as T;
     this.eventosEmitidos.push(validado);
+    if (this.eventosEmitidos.length > MAX_EVENTOS_EN_MEMORIA) {
+      this.eventosEmitidos.splice(0, this.eventosEmitidos.length - MAX_EVENTOS_EN_MEMORIA);
+    }
 
     if (this.persistidorOutbox) {
       try {
         await this.persistidorOutbox(validado);
       } catch {
-        // Conservado en outbox en memoria si MySQL no está conectado en local/test
+        // El persistidor registra el fallo; el evento sigue distribuyéndose en memoria
       }
     }
 

@@ -91,12 +91,14 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Ejecutar migraciones Prisma en MySQL 8 temporal
+      - name: Ejecutar migraciones Prisma y seed demo en MySQL 8 temporal
         env:
           DATABASE_URL: mysql://salud_digna_ci:ci_app_password@127.0.0.1:3306/salud_digna_ci?charset=utf8mb4
         run: |
           npm run prisma:migrate:deploy
           npm run prisma:generate
+          npm run seed
+          npm run demo:reset
 
       - name: Ejecutar pruebas de todos los paquetes y apps
         env:

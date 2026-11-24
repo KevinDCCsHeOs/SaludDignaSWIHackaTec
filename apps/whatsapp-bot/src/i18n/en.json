@@ -1,0 +1,53 @@
+{
+  "saludo": {
+    "pedirOtp": "Hi! To protect your information, I sent you a 6-digit verification code. Reply with it to continue.",
+    "otpInvalido": "That code is invalid or expired. Type \"new code\" to request another one.",
+    "bienvenidaNuevo": "Hi! I am the Salud Digna assistant. How can I help you today?",
+    "ambiguo": "We found more than one profile for this number. Connecting you with an advisor.",
+    "retomarTramite": "Thanks, {{nombre}}! You have a pending {{estudio}} at {{clinica}}. Would you like to continue where you left off?",
+    "sinTramiteActivo": "Thanks, {{nombre}}! Your identity is verified. What would you like to do today?"
+  },
+  "botones": {
+    "siContinuar": "Yes, continue",
+    "otraCosa": "Something else",
+    "hablarAsesor": "Talk to advisor",
+    "manana9": "Tomorrow 9:00",
+    "manana1130": "Tomorrow 11:30",
+    "verMas": "More times",
+    "volverTramite": "Back to my process",
+    "verMenu": "Main menu"
+  },
+  "menu": {
+    "titulo": "Main menu",
+    "cuerpo": "Choose an option so we can help without asking for your info again:",
+    "botonLista": "Options",
+    "opciones": {
+      "cotizar": "Get a quote",
+      "agendar": "Schedule or resume appointment",
+      "estatus": "Process or ticket status",
+      "resultados": "Check results",
+      "ubicacion": "Clinic location",
+      "recuperar": "I cannot access my account",
+      "asesor": "Talk to an advisor"
+    }
+  },
+  "flujo": {
+    "elegirHorario": "Which date and time works best for your appointment?",
+    "citaAgendada": "Done! Your appointment is scheduled for {{fecha}} at {{clinica}} (folio {{folio}}, code {{codigo}}).",
+    "ubicacionEnviada": "Here is the location for {{clinica}}: {{direccion}}.",
+    "estatusSinTramite": "You have no active processes right now. Would you like a quote?",
+    "estatusResumen": "Current status: {{resumen}}",
+    "resultadosInfo": "Clinical results are released after technical review and medical validation. We will notify you here and in the app.",
+    "cotizarGuia": "Tell me which exam you need (ultrasound, lab, X-ray, etc.).",
+    "interrupcionRetorno": "Done. Would you like to return to where you left off?",
+    "escaladoAsesor": "Connecting you with a human advisor now. Ticket: {{folio}} (estimated wait: 3 min). You will not need to repeat your details."
+  },
+  "recuperacion": {
+    "opcionMenu": "I cannot access my account",
+    "pedirOtp": "To protect your account, we sent a 6-digit verification code to your WhatsApp. Reply with it to continue.",
+    "enlaceEnviado": "Identity verified. We sent a one-time reset link valid for 30 minutes.",
+    "casoAmbiguo": "Multiple profiles match this number. Connecting you with an advisor.",
+    "noEncontrado": "No account matches this number. We can help you register or connect you with an advisor.",
+    "errorOtp": "The code is invalid or expired. Please try again."
+  }
+}

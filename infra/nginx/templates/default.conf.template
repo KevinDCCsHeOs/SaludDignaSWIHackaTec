@@ -1,0 +1,107 @@
+# Plantilla de Nginx (#35): al arrancar el contenedor se sustituye ${DOMINIO} con envsubst.
+# Los tres subdominios comparten el certificado emitido para app.${DOMINIO}.
+
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
+
+limit_req_zone $binary_remote_addr zone=autenticacion:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=webhook:10m rate=30r/s;
+
+server_tokens off;
+client_max_body_size 2m;
+
+# HTTP: solo desafíos de Let's Encrypt y redirección a HTTPS
+server {
+  listen 80;
+  listen [::]:80;
+  server_name app.${DOMINIO} api.${DOMINIO} wa.${DOMINIO};
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+# Parámetros TLS comunes
+ssl_certificate     /etc/letsencrypt/live/app.${DOMINIO}/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/app.${DOMINIO}/privkey.pem;
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;
+ssl_session_cache shared:SSL:10m;
+ssl_session_timeout 1d;
+
+# app.<dominio> → portal del paciente, consola y tableros (Next.js)
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  http2 on;
+  server_name app.${DOMINIO};
+  add_header Strict-Transport-Security "max-age=31536000" always;
+
+  location / {
+    proxy_pass http://web:3002;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+
+# api.<dominio> → núcleo NestJS (REST + Socket.IO)
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  http2 on;
+  server_name api.${DOMINIO};
+  add_header Strict-Transport-Security "max-age=31536000" always;
+
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection $connection_upgrade;
+  proxy_read_timeout 75s;
+
+  # Límite de intentos en login, recuperación y OTP
+  location ~ ^/(auth/login|auth/recuperar|otp/) {
+    limit_req zone=autenticacion burst=10 nodelay;
+    proxy_pass http://api:3000;
+  }
+
+  location / {
+    proxy_pass http://api:3000;
+  }
+}
+
+# wa.<dominio> → webhook de WhatsApp Cloud API (único punto que recibe tráfico de Meta)
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  http2 on;
+  server_name wa.${DOMINIO};
+  add_header Strict-Transport-Security "max-age=31536000" always;
+
+  location = /webhook {
+    limit_req zone=webhook burst=60 nodelay;
+    proxy_pass http://whatsapp-bot:3001/webhook;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+
+  location = /health {
+    proxy_pass http://whatsapp-bot:3001/health;
+  }
+
+  location / {
+    return 404;
+  }
+}

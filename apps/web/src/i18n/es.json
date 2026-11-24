@@ -1,0 +1,90 @@
+{
+  "app": {
+    "marca": "Salud Digna Omnicanal",
+    "saltarContenido": "Saltar al contenido principal",
+    "nav": {
+      "inicio": "Inicio",
+      "cotizar": "Cotizar",
+      "misTramites": "Mis trámites",
+      "resultados": "Resultados",
+      "consola": "Consola asesor",
+      "iniciarSesion": "Iniciar sesión",
+      "cerrarSesion": "Cerrar sesión"
+    }
+  },
+  "inicio": {
+    "titulo": "Un paciente, una sola conversación",
+    "subtitulo": "Inicia tu cotización aquí, retómala en WhatsApp, resuelve dudas por teléfono y revisa tu cita en la app sin repetir tus datos.",
+    "ctaCotizar": "Cotizar estudio",
+    "ctaTramites": "Ver mis trámites",
+    "ctaConsola": "Ir a Consola del asesor",
+    "bannerPendienteTitulo": "Tienes un trámite pendiente, ¿deseas continuar?",
+    "bannerPendienteBtn": "Continuar donde me quedé",
+    "pilares": [
+      "Identidad unificada y verificación OTP",
+      "Autoguardado del avance en cada paso",
+      "Línea de tiempo en vivo entre canales",
+      "Privacidad LFPDPPP con cifrado AES-256"
+    ]
+  },
+  "login": {
+    "titulo": "Acceso al portal",
+    "subtitulo": "Ingresa con tu cuenta demo ficticia para probar el recorrido del paciente o la consola del asesor.",
+    "email": "Correo electrónico",
+    "contrasena": "Contraseña",
+    "entrar": "Entrar",
+    "cargando": "Iniciando sesión...",
+    "accesosRapidos": "Accesos rápidos demo (datos ficticios)",
+    "comoAna": "Entrar como Ana (Paciente)",
+    "comoAsesor": "Entrar como Carlos (Asesor)",
+    "comoAdmin": "Entrar como Admin"
+  },
+  "cotizar": {
+    "paso1": "1 · Estudio",
+    "paso2": "2 · Clínica",
+    "paso3": "3 · Cita",
+    "tituloEstudios": "Cotiza tu estudio",
+    "subtituloEstudios": "Tu avance se guarda automáticamente al elegir un estudio.",
+    "buscarPlaceholder": "Buscar ultrasonido, glucosa, rayos X...",
+    "todasCategorias": "Todas las categorías",
+    "seleccionar": "Elegir y continuar",
+    "guardando": "Guardando avance...",
+    "preparacion": "Preparación",
+    "tituloClinicas": "Elige tu clínica",
+    "subtituloClinicas": "En cuanto seleccionas una clínica, guardamos tu progreso automáticamente. Si cierras la pestaña, podrás retomarlo en WhatsApp.",
+    "todasRegiones": "Todas las regiones",
+    "autoguardadoOk": "Avance autoguardado correctamente. Puedes continuar a elegir horario o retomar después desde WhatsApp.",
+    "continuarCita": "Elegir fecha y hora",
+    "tituloCita": "Agenda tu cita",
+    "subtituloCita": "Confirma el horario que prefieras sin volver a capturar estudio ni clínica.",
+    "fechaLabel": "Fecha y hora preferida",
+    "agendarBtn": "Agendar cita",
+    "confirmarBtn": "Confirmar cita",
+    "citaConfirmadaOk": "¡Tu cita quedó confirmada! Puedes verla también en la app móvil."
+  },
+  "tramites": {
+    "titulo": "Mis trámites y citas",
+    "vacio": "Aún no tienes trámites registrados. Inicia una cotización para comenzar.",
+    "retomar": "Retomar trámite",
+    "verDetalle": "Ver detalle y timeline",
+    "timelineTitulo": "Línea de tiempo unificada"
+  },
+  "resultados": {
+    "titulo": "Mis resultados clínicos",
+    "subtitulo": "Por seguridad y conforme a la LFPDPPP, los resultados solo son visibles una vez concluidas la revisión técnica y la validación médica.",
+    "sinResultados": "Aún no tienes resultados liberados. Cuando tu médico libere un estudio, recibirás una notificación por WhatsApp y la app."
+  },
+  "chat": {
+    "boton": "Asistente",
+    "titulo": "Asistente virtual Salud Digna",
+    "bienvenida": "¡Hola! Puedo ayudarte con cotizaciones, estatus de trámites, preparación o conectarte con un asesor. (Nunca diagnostico ni receto).",
+    "placeholder": "Escribe tu duda o \"asesor\"...",
+    "enviar": "Enviar",
+    "respuestaDefault": "Gracias por escribir. Puedes iniciar o retomar tu cotización desde el menú, o escribir \"asesor\" para abrir un ticket con el Contact Center.",
+    "respuestaUrgencia": "Si presentas síntomas de alarma (dolor de pecho, dificultad para respirar o sangrado intenso), llama de inmediato al 911."
+  },
+  "estados": {
+    "cargando": "Cargando información...",
+    "errorGenerico": "Ocurrió un problema al conectar con el API. Verifica que apps/api esté en ejecución."
+  }
+}

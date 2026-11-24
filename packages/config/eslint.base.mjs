@@ -10,6 +10,7 @@ export function crearConfigEslintBase() {
         '**/dist/**',
         '**/build/**',
         '**/.next/**',
+        '**/next-env.d.ts',
         '**/.expo/**',
         '**/coverage/**',
         '.agents/**',

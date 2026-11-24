@@ -1,0 +1,90 @@
+{
+  "app": {
+    "marca": "Salud Digna Omnichannel",
+    "saltarContenido": "Skip to main content",
+    "nav": {
+      "inicio": "Home",
+      "cotizar": "Quote",
+      "misTramites": "My processes",
+      "resultados": "Results",
+      "consola": "Advisor console",
+      "iniciarSesion": "Sign in",
+      "cerrarSesion": "Sign out"
+    }
+  },
+  "inicio": {
+    "titulo": "One patient, one conversation",
+    "subtitulo": "Start a quote on the web, resume on WhatsApp, solve questions via Call Center, and view your confirmed appointment in the mobile app.",
+    "ctaCotizar": "Quote an exam",
+    "ctaTramites": "View my processes",
+    "ctaConsola": "Open Advisor Console",
+    "bannerPendienteTitulo": "You have a pending process — would you like to continue?",
+    "bannerPendienteBtn": "Continue where I left off",
+    "pilares": [
+      "Unified identity with OTP verification",
+      "Automatic progress saving at every step",
+      "Real-time cross-channel timeline",
+      "LFPDPPP privacy with AES-256 encryption"
+    ]
+  },
+  "login": {
+    "titulo": "Portal sign in",
+    "subtitulo": "Use a fictional demo account to test the patient portal or advisor console.",
+    "email": "Email",
+    "contrasena": "Password",
+    "entrar": "Sign in",
+    "cargando": "Signing in...",
+    "accesosRapidos": "Quick demo accounts (fictional data)",
+    "comoAna": "Sign in as Ana (Patient)",
+    "comoAsesor": "Sign in as Carlos (Advisor)",
+    "comoAdmin": "Sign in as Admin"
+  },
+  "cotizar": {
+    "paso1": "1 · Exam",
+    "paso2": "2 · Clinic",
+    "paso3": "3 · Appointment",
+    "tituloEstudios": "Quote your exam",
+    "subtituloEstudios": "Your progress is saved automatically when selecting an exam.",
+    "buscarPlaceholder": "Search ultrasound, glucose, X-ray...",
+    "todasCategorias": "All categories",
+    "seleccionar": "Select and continue",
+    "guardando": "Saving progress...",
+    "preparacion": "Preparation",
+    "tituloClinicas": "Choose a clinic",
+    "subtituloClinicas": "Selecting a clinic saves your progress automatically so you can resume on WhatsApp.",
+    "todasRegiones": "All regions",
+    "autoguardadoOk": "Progress auto-saved. Continue to choose a date or resume later on WhatsApp.",
+    "continuarCita": "Choose date and time",
+    "tituloCita": "Schedule appointment",
+    "subtituloCita": "Confirm your preferred time without re-entering exam or clinic details.",
+    "fechaLabel": "Preferred date and time",
+    "agendarBtn": "Schedule appointment",
+    "confirmarBtn": "Confirm appointment",
+    "citaConfirmadaOk": "Your appointment is confirmed! You can also view it in the mobile app."
+  },
+  "tramites": {
+    "titulo": "My processes and appointments",
+    "vacio": "You have no processes yet. Start a quote to begin.",
+    "retomar": "Resume process",
+    "verDetalle": "View details & timeline",
+    "timelineTitulo": "Unified timeline"
+  },
+  "resultados": {
+    "titulo": "My clinical results",
+    "subtitulo": "Results are only visible after technical review and medical validation.",
+    "sinResultados": "No released results yet. You will be notified on WhatsApp and the app once ready."
+  },
+  "chat": {
+    "boton": "Assistant",
+    "titulo": "Salud Digna Virtual Assistant",
+    "bienvenida": "Hi! I can help with quotes, status, preparation, or connect you with an advisor. (Never diagnoses or prescribes).",
+    "placeholder": "Ask a question or type \"asesor\"...",
+    "enviar": "Send",
+    "respuestaDefault": "Thanks for reaching out. Use the menu to continue your process, or type \"asesor\" to open a Contact Center ticket.",
+    "respuestaUrgencia": "If you have emergency symptoms (chest pain, difficulty breathing, severe bleeding), call 911 immediately."
+  },
+  "estados": {
+    "cargando": "Loading...",
+    "errorGenerico": "Could not reach the API. Make sure apps/api is running."
+  }
+}

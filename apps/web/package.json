@@ -2,16 +2,27 @@
   "name": "@salud-digna/web",
   "version": "0.1.0",
   "private": true,
-  "description": "Portal web del paciente, consola del asesor, vista médica, Patient Journey y KPIs",
-  "main": "dist/main.js",
+  "description": "Portal web del paciente, consola del asesor, vista médica, Patient Journey y KPIs (Next.js App Router)",
   "scripts": {
-    "dev": "npm run build && node dist/main.js",
-    "build": "tsc -p tsconfig.json",
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start -p 3002",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@salud-digna/shared": "*",
-    "@salud-digna/ui": "*"
+    "@salud-digna/ui": "*",
+    "@tanstack/react-query": "^5.80.6",
+    "leaflet": "^1.9.4",
+    "next": "^15.3.3",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.18",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4"
   }
 }

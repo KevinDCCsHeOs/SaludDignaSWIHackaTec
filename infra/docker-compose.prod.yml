@@ -1,0 +1,3 @@
+# Base de despliegue en producción para VPS Hostinger KVM 2 (Docker Compose + Nginx + TLS).
+# La configuración completa de producción, respaldos y despliegue continuo se implementa en el issue #35.
+services: {}

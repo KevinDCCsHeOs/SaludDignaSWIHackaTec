@@ -1,0 +1,55 @@
+# Entorno de desarrollo local — MySQL 8 (utf8mb4) + Redis 7 (AOF)
+# Uso: docker compose -f infra/docker-compose.dev.yml up -d
+# Nota: credenciales pensadas únicamente para desarrollo local; en producción usar .env privado (#35).
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: salud-digna-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-salud_digna}
+      MYSQL_USER: ${MYSQL_USER:-salud_digna_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-dev_app_password}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-uroot',
+          '-p${MYSQL_ROOT_PASSWORD:-dev_root_password}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: salud-digna-redis-dev
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_dev_data:
+  redis_dev_data:

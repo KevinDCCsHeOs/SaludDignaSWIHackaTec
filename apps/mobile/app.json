@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Salud Digna Omnicanal",
+    "slug": "salud-digna-omnicanal",
+    "scheme": "saluddigna",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saluddigna.omnicanal.demo"
+    },
+    "android": {
+      "package": "com.saluddigna.omnicanal.demo",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b6e4f"
+      }
+    },
+    "plugins": ["expo-router", "expo-secure-store", "expo-notifications"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

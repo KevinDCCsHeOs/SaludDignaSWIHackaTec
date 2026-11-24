@@ -2,15 +2,29 @@
   "name": "@salud-digna/mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Aplicación móvil del paciente (Expo / React Native, #22)",
-  "main": "dist/index.js",
+  "description": "Aplicación móvil del paciente Android/iOS (Expo + Expo Router, #22)",
+  "main": "expo-router/entry",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build": "tsc --noEmit -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@salud-digna/shared": "*",
-    "@salud-digna/ui": "*"
+    "@salud-digna/ui": "*",
+    "expo": "~53.0.9",
+    "expo-constants": "~17.1.6",
+    "expo-linking": "~7.1.5",
+    "expo-notifications": "~0.31.2",
+    "expo-router": "~5.0.7",
+    "expo-secure-store": "~14.2.3",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.10.0"
   }
 }

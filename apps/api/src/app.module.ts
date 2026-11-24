@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
+import { CanalesModule } from './canales/canales.module';
 import { CatalogosModule } from './catalogos/catalogos.module';
 import { CommonModule } from './common/common.module';
 import { ContextoModule } from './contexto/contexto.module';
@@ -29,6 +30,7 @@ import { TramitesModule } from './tramites/tramites.module';
     ContextoModule,
     TimelineModule,
     TicketsModule,
+    CanalesModule,
   ],
   controllers: [HealthController],
 })

@@ -116,6 +116,21 @@ export class PacienteStoreService {
     return [...this.pacientes.values()].filter((p) => !p.fusionadoEnId && p.curpHash === curpHash);
   }
 
+  buscarPorTexto(termino: string): PacienteRegistro[] {
+    const q = termino.trim().toLowerCase();
+    const digitos = q.replace(/\D/g, '');
+    return [...this.pacientes.values()].filter((p) => {
+      if (p.fusionadoEnId) return false;
+      if (!q) return true;
+      const nombreCompleto = `${p.nombre} ${p.apellidos}`.toLowerCase();
+      if (nombreCompleto.includes(q)) return true;
+      if (p.id.toLowerCase().includes(q)) return true;
+      if (p.email?.toLowerCase().includes(q)) return true;
+      if (digitos.length >= 4 && p.telefonoE164?.includes(digitos)) return true;
+      return false;
+    });
+  }
+
   crearPaciente(datos: {
     id?: string;
     nombre: string;

@@ -335,6 +335,13 @@ export class IdentityResolverService {
   }
 
   /**
+   * Busca pacientes por nombre, teléfono o correo devolviendo solo campos enmascarados por rol (#19, #10).
+   */
+  buscarPacientesMinimizado(termino: string, rol: RolUsuario) {
+    return this.store.buscarPorTexto(termino).map((p) => this.obtenerPerfilMinimizado(p.id, rol));
+  }
+
+  /**
    * Devuelve el perfil del paciente proyectado y enmascarado según el rol solicitante (#10).
    */
   obtenerPerfilMinimizado(pacienteId: string, rol: RolUsuario) {

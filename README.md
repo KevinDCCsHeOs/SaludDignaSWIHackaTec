@@ -1,5 +1,7 @@
 # Salud Digna Omnicanal — Un paciente, una sola conversación
 
+[![CI](https://github.com/KevinDCCsHeOs/SaludDignaSWIHackaTec/actions/workflows/ci.yml/badge.svg)](https://github.com/KevinDCCsHeOs/SaludDignaSWIHackaTec/actions/workflows/ci.yml)
+
 Prototipo para el track **"Orquestación Omnicanal de Atención"** de **Salud Digna × TecNM HackaTec** (InnovaTecNM 2026).
 
 El paciente puede iniciar un trámite en la **web**, continuarlo por **WhatsApp**, resolver una duda con el **Call Center** y ver su cita confirmada en la **app**, sin repetir datos ni empezar de cero.

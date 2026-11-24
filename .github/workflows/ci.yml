@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad:
+    name: Lint, formato y tipos
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22 y caché npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar ESLint
+        run: npm run lint
+
+      - name: Verificar Prettier
+        run: npm run format:check
+
+      - name: Validar esquema Prisma
+        env:
+          DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/salud_digna_ci?charset=utf8mb4
+        run: |
+          npm run prisma:validate
+          npm run prisma:format:check
+
+      - name: Verificar sincronización de docs/eventos.md
+        run: npm run docs:eventos:check
+
+      - name: Verificar tipos TypeScript
+        run: npm run typecheck
+
+  pruebas:
+    name: Pruebas y migraciones Prisma (MySQL 8 + Redis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    needs: [calidad]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: salud_digna_ci
+          MYSQL_USER: salud_digna_ci
+          MYSQL_PASSWORD: ci_app_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -pci_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22 y caché npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar migraciones Prisma en MySQL 8 temporal
+        env:
+          DATABASE_URL: mysql://salud_digna_ci:ci_app_password@127.0.0.1:3306/salud_digna_ci?charset=utf8mb4
+        run: |
+          npm run prisma:migrate:deploy
+          npm run prisma:generate
+
+      - name: Ejecutar pruebas de todos los paquetes y apps
+        env:
+          DATABASE_URL: mysql://salud_digna_ci:ci_app_password@127.0.0.1:3306/salud_digna_ci?charset=utf8mb4
+          REDIS_URL: redis://127.0.0.1:6379
+        run: npm test
+
+  build:
+    name: Build (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    needs: [calidad]
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, web, whatsapp-bot]
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22 y caché npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar contratos compartidos
+        run: |
+          npm run build --workspace=@salud-digna/shared
+          npm run build --workspace=@salud-digna/ui
+
+      - name: Compilar aplicación ${{ matrix.app }}
+        run: npm run build --workspace=@salud-digna/${{ matrix.app }}

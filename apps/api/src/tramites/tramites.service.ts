@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
@@ -17,6 +18,7 @@ import type {
 import { CANALES_ATENCION, ESTADOS_TRAMITE, TIPOS_TRAMITE } from '@salud-digna/shared';
 import { z } from 'zod';
 import { CatalogosService } from '../catalogos/catalogos.service';
+import { PersistenciaService } from '../common/persistencia/persistencia.service';
 import { KeyValueStoreService } from '../common/redis/kv-store.service';
 import { EventBusService } from '../eventos/event-bus.service';
 import { validarTransicionTramite } from './maquina-estados';
@@ -113,6 +115,12 @@ export const RetomarTramiteSchema = z.object({
   canal: z.enum(CANALES_ATENCION),
 });
 
+export const ESTADOS_TERMINALES_TRAMITE: readonly EstadoTramite[] = ['cerrado', 'cancelado'];
+
+export function esEstadoTerminal(estado: EstadoTramite): boolean {
+  return ESTADOS_TERMINALES_TRAMITE.includes(estado);
+}
+
 export const CancelarTramiteSchema = z.object({
   canal: z.enum(CANALES_ATENCION),
   motivo: z.string().min(1).max(200).optional(),
@@ -121,7 +129,7 @@ export const CancelarTramiteSchema = z.object({
 const TTL_CACHE_CONTEXTO_SEG = 24 * 60 * 60; // 24 h (#13)
 
 @Injectable()
-export class TramitesService {
+export class TramitesService implements OnModuleInit {
   private readonly tramites = new Map<string, TramiteRegistro>();
   private secuenciaFolio = 1;
 
@@ -129,8 +137,32 @@ export class TramitesService {
     private readonly catalogos: CatalogosService,
     private readonly eventBus: EventBusService,
     private readonly kv: KeyValueStoreService,
+    private readonly persistencia: PersistenciaService,
   ) {
     this.cargarSnapshotSiExiste();
+  }
+
+  /**
+   * Al arrancar recarga los trámites desde MySQL (fuente de verdad, #13). Si la BD no está
+   * configurada se conserva lo cargado del snapshot JSON (desarrollo y pruebas).
+   */
+  async onModuleInit(): Promise<void> {
+    const desdeBd = await this.persistencia.cargarTramites();
+    if (!desdeBd) return;
+    this.tramites.clear();
+    for (const t of desdeBd) {
+      this.tramites.set(t.id, t);
+    }
+    this.recalcularSecuenciaFolio();
+  }
+
+  private recalcularSecuenciaFolio(): void {
+    let maximo = 0;
+    for (const t of this.tramites.values()) {
+      const numero = Number(t.folio.split('-').at(-1));
+      if (Number.isFinite(numero) && numero > maximo) maximo = numero;
+    }
+    this.secuenciaFolio = Math.max(this.secuenciaFolio, maximo + 1);
   }
 
   private obtenerRutaSnapshot(): string | null {
@@ -150,6 +182,7 @@ export class TramitesService {
       for (const t of raw.tramites ?? []) {
         this.tramites.set(t.id, t);
       }
+      this.recalcularSecuenciaFolio();
     } catch {
       // Si el snapshot estuviera corrupto, arranca limpio sin tumbar el proceso
     }
@@ -177,15 +210,31 @@ export class TramitesService {
     return `ctx:${pacienteId}`;
   }
 
+  /**
+   * Guarda el trámite (MySQL + snapshot) y actualiza la caché `ctx:{pacienteId}` con el trámite
+   * activo más reciente del paciente. Un trámite cerrado o cancelado nunca queda en caché (#13).
+   */
   async sincronizarCacheContexto(tramite: TramiteRegistro): Promise<void> {
+    await this.persistencia.guardarTramite(tramite);
     this.persistirSnapshot();
+
+    const clave = this.claveCacheContexto(tramite.pacienteId);
+    const activo = esEstadoTerminal(tramite.estado)
+      ? this.obtenerActivoDePaciente(tramite.pacienteId)
+      : tramite;
+
+    if (!activo) {
+      await this.kv.del(clave);
+      return;
+    }
+
     await this.kv.set(
-      this.claveCacheContexto(tramite.pacienteId),
+      clave,
       JSON.stringify({
-        tramiteId: tramite.id,
-        folio: tramite.folio,
-        estado: tramite.estado,
-        contexto: tramite.contexto,
+        tramiteId: activo.id,
+        folio: activo.folio,
+        estado: activo.estado,
+        contexto: activo.contexto,
       }),
       TTL_CACHE_CONTEXTO_SEG,
     );
@@ -193,7 +242,36 @@ export class TramitesService {
 
   private generarFolioLegible(): string {
     const num = String(this.secuenciaFolio++).padStart(6, '0');
-    return `SD-2026-${num}`;
+    return `SD-${new Date().getFullYear()}-${num}`;
+  }
+
+  /**
+   * Cierra el paso en curso y abre uno nuevo. Lo usan `avanzar` y el autoguardado de contexto
+   * cuando el trámite cambia de estado (#12, #13).
+   */
+  registrarPaso(
+    tramite: TramiteRegistro,
+    clavePaso: string,
+    canal: CanalAtencion,
+    ahora: string,
+    opciones?: { datos?: Record<string, unknown> | null; completado?: boolean },
+  ): void {
+    const pasoPrevio = tramite.pasos.at(-1);
+    if (pasoPrevio && !pasoPrevio.completadoEn) {
+      pasoPrevio.estatus = 'completado';
+      pasoPrevio.completadoEn = ahora;
+    }
+
+    tramite.pasos.push({
+      id: `paso_${randomUUID().slice(0, 10)}`,
+      orden: tramite.pasos.length + 1,
+      clavePaso,
+      estatus: opciones?.completado ? 'completado' : 'en_progreso',
+      canal,
+      datos: opciones?.datos ?? null,
+      iniciadoEn: ahora,
+      completadoEn: opciones?.completado ? ahora : null,
+    });
   }
 
   obtenerPorIdOFolio(idOFolio: string): TramiteRegistro {
@@ -372,13 +450,12 @@ export class TramitesService {
     }
 
     const canalAnterior = tramite.ultimoCanal;
+    const estadoPrevio = tramite.estado;
     const ahora = new Date().toISOString();
 
-    // Cerrar paso anterior y abrir nuevo paso
-    const pasoPrevio = tramite.pasos.at(-1);
-    if (pasoPrevio && !pasoPrevio.completadoEn) {
-      pasoPrevio.estatus = 'completado';
-      pasoPrevio.completadoEn = ahora;
+    // Al salir de `pausado` hacia su estado previo ya no hay nada que restaurar
+    if (estadoPrevio === 'pausado') {
+      tramite.estadoAnterior = null;
     }
 
     tramite.estado = data.estadoDestino;
@@ -435,18 +512,9 @@ export class TramitesService {
       tramite.contexto.pendientes = [];
     }
 
-    tramite.pasos.push({
-      id: `paso_${randomUUID().slice(0, 10)}`,
-      orden: tramite.pasos.length + 1,
-      clavePaso: data.estadoDestino,
-      estatus:
-        data.estadoDestino === 'cerrado' || data.estadoDestino === 'cita_confirmada'
-          ? 'completado'
-          : 'en_progreso',
-      canal: data.canal,
+    this.registrarPaso(tramite, data.estadoDestino, data.canal, ahora, {
       datos: data.datos ?? null,
-      iniciadoEn: ahora,
-      completadoEn: data.estadoDestino === 'cerrado' ? ahora : null,
+      completado: data.estadoDestino === 'cerrado' || data.estadoDestino === 'cita_confirmada',
     });
 
     await this.sincronizarCacheContexto(tramite);
@@ -528,6 +596,23 @@ export class TramitesService {
           estudioId: estudio.id,
           validadoPorId: actor.id,
           canalNotificacion: data.canal,
+        },
+      });
+    } else {
+      // Transiciones sin evento de dominio propio (registro, pago, en proceso, cierre…):
+      // todo cambio de estado debe quedar en la trazabilidad (AGENTS.md).
+      await this.eventBus.publish({
+        tipo: 'tramite.avanzado',
+        version: 1,
+        pacienteId: tramite.pacienteId,
+        tramiteId: tramite.id,
+        canal: data.canal,
+        actor,
+        datos: {
+          folio: tramite.folio,
+          estadoAnterior: estadoPrevio,
+          estadoNuevo: data.estadoDestino,
+          pasoActual: tramite.pasoActual,
         },
       });
     }
@@ -652,6 +737,7 @@ export class TramitesService {
   async cancelar(
     idOFolio: string,
     entrada: z.input<typeof CancelarTramiteSchema>,
+    actor: { tipo: TipoActor; id: string },
   ): Promise<TramiteRegistro> {
     const parsed = CancelarTramiteSchema.safeParse(entrada);
     if (!parsed.success) {
@@ -670,16 +756,43 @@ export class TramitesService {
     }
 
     const ahora = new Date().toISOString();
+    const estadoPrevio = tramite.estado;
+    const citaCancelada = Boolean(tramite.cita && tramite.cita.estatus !== 'cancelada');
+
     tramite.estado = 'cancelado';
+    tramite.estadoAnterior = null;
+    tramite.pasoActual = 'cancelado';
     tramite.ultimoCanal = parsed.data.canal;
     tramite.actualizadoEn = ahora;
+    tramite.contexto.pasoActual = 'cancelado';
+    tramite.contexto.pendientes = [];
     tramite.contexto.ultimoCanal = parsed.data.canal;
     tramite.contexto.actualizadoEn = ahora;
     if (tramite.cita) {
       tramite.cita.estatus = 'cancelada';
     }
+    this.registrarPaso(tramite, 'cancelado', parsed.data.canal, ahora, {
+      datos: parsed.data.motivo ? { motivo: parsed.data.motivo } : null,
+      completado: true,
+    });
 
     await this.sincronizarCacheContexto(tramite);
+
+    await this.eventBus.publish({
+      tipo: 'tramite.cancelado',
+      version: 1,
+      pacienteId: tramite.pacienteId,
+      tramiteId: tramite.id,
+      canal: parsed.data.canal,
+      actor,
+      datos: {
+        folio: tramite.folio,
+        estadoPrevio,
+        citaCancelada,
+        ...(parsed.data.motivo ? { motivo: parsed.data.motivo } : {}),
+      },
+    });
+
     return tramite;
   }
 }

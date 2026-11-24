@@ -1,11 +1,22 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { CanalAtencion, TipoActor } from '@salud-digna/shared';
 import { CANALES_ATENCION } from '@salud-digna/shared';
 import { z } from 'zod';
 import { CatalogosService } from '../catalogos/catalogos.service';
 import { KeyValueStoreService } from '../common/redis/kv-store.service';
 import { EventBusService } from '../eventos/event-bus.service';
-import { ContextoTramite, TramiteRegistro, TramitesService } from '../tramites/tramites.service';
+import { validarTransicionTramite } from '../tramites/maquina-estados';
+import {
+  ContextoTramite,
+  esEstadoTerminal,
+  TramiteRegistro,
+  TramitesService,
+} from '../tramites/tramites.service';
 
 export const PatchContextoSchema = z.object({
   canal: z.enum(CANALES_ATENCION),
@@ -82,6 +93,11 @@ export class ContextoService {
     }
 
     const tramite = this.tramites.obtenerPorIdOFolio(tramiteId);
+    if (esEstadoTerminal(tramite.estado)) {
+      throw new ConflictException(
+        `El trámite ${tramite.folio} está ${tramite.estado}; ya no se puede modificar su contexto`,
+      );
+    }
     const data = parsed.data;
     const ahora = new Date().toISOString();
     const canalAnterior = tramite.ultimoCanal;
@@ -127,11 +143,7 @@ export class ContextoService {
       tramite.region = cli.region;
       ctx.clinica = { id: cli.id, nombre: cli.nombre, region: cli.region };
       ctx.pendientes = ctx.pendientes.filter((p) => p !== 'elegir_clinica');
-      if (tramite.estado === 'cotizacion' || tramite.estado === 'registro') {
-        tramite.estado = 'seleccion_clinica';
-        tramite.pasoActual = 'seleccion_clinica';
-        ctx.pasoActual = 'seleccion_clinica';
-      }
+      this.avanzarASeleccionClinicaSiProcede(tramite, data.canal, ahora);
       clinicaSeleccionada = cli;
     }
 
@@ -238,6 +250,42 @@ export class ContextoService {
   }
 
   /**
+   * Elegir clínica durante el autoguardado avanza el trámite a `seleccion_clinica`, pero solo si la
+   * máquina de estados lo permite (por ejemplo, exige estudio). Si el trámite está pausado, se
+   * actualiza el estado al que regresará al retomarse (#12, #13).
+   */
+  private avanzarASeleccionClinicaSiProcede(
+    tramite: TramiteRegistro,
+    canal: CanalAtencion,
+    ahora: string,
+  ): void {
+    const datos = { estudioId: tramite.estudioId, clinicaId: tramite.clinicaId };
+
+    if (tramite.estado === 'pausado') {
+      const previo = tramite.estadoAnterior;
+      if (
+        (previo === 'cotizacion' || previo === 'registro') &&
+        validarTransicionTramite(previo, 'seleccion_clinica', datos).valida
+      ) {
+        tramite.estadoAnterior = 'seleccion_clinica';
+        tramite.pasoActual = 'seleccion_clinica';
+        tramite.contexto.pasoActual = 'seleccion_clinica';
+      }
+      return;
+    }
+
+    if (tramite.estado !== 'cotizacion' && tramite.estado !== 'registro') return;
+    if (!validarTransicionTramite(tramite.estado, 'seleccion_clinica', datos).valida) return;
+
+    tramite.estado = 'seleccion_clinica';
+    tramite.pasoActual = 'seleccion_clinica';
+    tramite.contexto.pasoActual = 'seleccion_clinica';
+    this.tramites.registrarPaso(tramite, 'seleccion_clinica', canal, ahora, {
+      datos: { clinicaId: tramite.clinicaId },
+    });
+  }
+
+  /**
    * Consulta el contexto acumulado del paciente desde cualquier canal (#13).
    * Lee caché `ctx:{pacienteId}` en Redis y cae a la fuente de verdad si no existe en caché.
    */
@@ -252,18 +300,25 @@ export class ContextoService {
   }> {
     const enCache = await this.kv.get(`ctx:${pacienteId}`);
     if (enCache) {
-      const parsed = JSON.parse(enCache) as {
-        tramiteId: string;
-        folio: string;
-        estado: TramiteRegistro['estado'];
-        contexto: ContextoTramite;
-      };
-      return {
-        pacienteId,
-        ...parsed,
-        resumen: resumenContexto(parsed),
-        origen: 'cache_redis',
-      };
+      try {
+        const parsed = JSON.parse(enCache) as {
+          tramiteId: string;
+          folio: string;
+          estado: TramiteRegistro['estado'];
+          contexto: ContextoTramite;
+        };
+        // Una entrada vieja de un trámite ya cerrado o cancelado no se sirve como "activo"
+        if (!esEstadoTerminal(parsed.estado)) {
+          return {
+            pacienteId,
+            ...parsed,
+            resumen: resumenContexto(parsed),
+            origen: 'cache_redis',
+          };
+        }
+      } catch {
+        // Entrada corrupta en caché: se ignora y se consulta la fuente de verdad
+      }
     }
 
     const activo = this.tramites.obtenerActivoDePaciente(pacienteId);

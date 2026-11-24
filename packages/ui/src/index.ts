@@ -54,3 +54,6 @@ export interface EntradaTimelineVisual {
   claveAccionI18n: string;
   estadoResultante?: EstadoTramite;
 }
+
+export * from './realtime';
+export * from './timeline';

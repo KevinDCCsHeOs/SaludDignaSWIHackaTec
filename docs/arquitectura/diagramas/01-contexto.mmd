@@ -1,0 +1,28 @@
+%% C4 Nivel 1 — Contexto del sistema
+flowchart LR
+  classDef persona fill:#0b6e4f,stroke:#073b2a,color:#fff
+  classDef sistema fill:#1d4ed8,stroke:#1e3a8a,color:#fff
+  classDef externo fill:#6b7280,stroke:#374151,color:#fff
+
+  P["👤 Paciente<br/><small>Adultos, con hijos o padres a cargo</small>"]:::persona
+  AS["🎧 Asesor / Asesor pro<br/><small>Contact Center</small>"]:::persona
+  MD["🩺 Médico y revisor técnico"]:::persona
+  AD["🛡️ Administrador"]:::persona
+
+  SD["<b>Plataforma Omnicanal Salud Digna</b><br/><small>Identidad unificada · Contexto y estado del trámite<br/>Trazabilidad · Seguridad</small>"]:::sistema
+
+  META["WhatsApp Business Platform<br/><small>Meta Cloud API</small>"]:::externo
+  LLM["Proveedor de LLM<br/><small>Asistente virtual</small>"]:::externo
+  PUSH["Expo Push Service<br/><small>Notificaciones móviles</small>"]:::externo
+  MAIL["Correo / SMS<br/><small>OTP y avisos</small>"]:::externo
+
+  P -->|"Web y App"| SD
+  P -->|"Mensajes WhatsApp"| META
+  META -->|"Webhook HTTPS"| SD
+  SD -->|"Respuestas y plantillas"| META
+  AS -->|"Consola de atención"| SD
+  MD -->|"Revisión y liberación de resultados"| SD
+  AD -->|"Patient Journey, KPIs, auditoría"| SD
+  SD -->|"Intención y respuesta con contexto mínimo"| LLM
+  SD -->|"Cita confirmada, resultados"| PUSH
+  SD -->|"Códigos OTP, recuperación"| MAIL

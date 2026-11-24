@@ -1,0 +1,34 @@
+%% C4 Nivel 3 — Módulos del API (monolito modular NestJS), por capas.
+%% Cada petición entra por arriba y baja capa por capa.
+block-beta
+  columns 4
+  IN["Entrada: REST · Socket.IO · llamadas del bot"]:4
+  space:4
+  T["1 · Transversales — se aplican a toda petición"]:4
+  AUTH["auth\nJWT · RBAC · guards"]:1
+  PRIV["privacidad\ncifrado · enmascarado"]:2
+  AUD["auditoria\nquién vio qué"]:1
+  space:4
+  D["2 · Dominio"]:4
+  IDN["identidad\nresolver · vincular"] OTP["otp\nsolicitar · verificar"] TRM["tramites\nmáquina de estados"] CTX["contexto\nautoguardado · resumen"]
+  TKT["tickets\nSLA · escalamiento"] RES["resultados\nrevisión · liberación"] CAT["catalogos\nestudios · clínicas"] IA["ia\nintención · guardrails"]
+  space:4
+  BUS["3 · eventos — EventBus: todo cambio de estado publica un evento (idempotente por eventId)"]:4
+  space:4
+  C["4 · Consumidores de eventos"]:4
+  TL["timeline"] RT["realtime\nSocket.IO"] NOT["notificaciones\nWA · push · correo"] MET["metricas"]
+  space:4
+  P["5 · Persistencia"]:4
+  DB[("MySQL — fuente de verdad")]:2 RD[("Redis — streams · caché · OTP")]:2
+
+
+  classDef mod fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+  classDef trans fill:#ede9fe,stroke:#7c3aed,color:#0f172a
+  classDef datos fill:#fef3c7,stroke:#b45309,color:#0f172a
+  classDef head fill:#e5e7eb,stroke:#9ca3af,color:#111
+  classDef in fill:#d1fae5,stroke:#0b6e4f,color:#0f172a
+  class IN in
+  class T,D,C,P head
+  class AUTH,PRIV,AUD trans
+  class IDN,OTP,TRM,CTX,TKT,RES,CAT,IA,BUS,TL,RT,NOT,MET mod
+  class DB,RD datos

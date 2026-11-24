@@ -1,0 +1,19 @@
+%% Flujo de un evento: de la acción en un canal a todas las vistas
+flowchart LR
+  classDef c fill:#0b6e4f,stroke:#073b2a,color:#fff
+  classDef a fill:#1d4ed8,stroke:#1e3a8a,color:#fff
+  classDef d fill:#b45309,stroke:#78350f,color:#fff
+
+  A["Acción en un canal<br/><small>web · app · bot · consola</small>"]:::c
+  V["API valida<br/><small>JWT · rol · identidad verificada<br/>transición permitida</small>"]:::a
+  T[("Transacción MySQL<br/><small>cambio de estado + fila en Evento</small>")]:::d
+  S[("Redis Stream<br/><small>XADD eventos</small>")]:::d
+  C1["timeline"]:::a
+  C2["realtime → Socket.IO<br/><small>salas paciente:id, rol:asesor, rol:admin</small>"]:::a
+  C3["notificaciones<br/><small>WhatsApp · push · correo</small>"]:::a
+  C4["metricas / KPIs"]:::a
+  C5["auditoria"]:::a
+
+  A --> V --> T --> S
+  S --> C1 & C2 & C3 & C4 & C5
+  C2 -->|"&lt; 2 s"| A

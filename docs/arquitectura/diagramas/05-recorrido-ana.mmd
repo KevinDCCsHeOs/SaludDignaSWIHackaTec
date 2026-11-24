@@ -1,0 +1,46 @@
+%% Secuencia de alto nivel — recorrido de Ana (Web → WhatsApp → Call Center → App)
+sequenceDiagram
+  autonumber
+  actor Ana
+  participant WEB as Web
+  participant BOT as WhatsApp bot
+  participant API as API (núcleo)
+  participant DB as MySQL
+  participant BUS as Redis Streams
+  participant CC as Consola asesor
+  participant APP as App
+
+  Note over Ana,WEB: 1 · Web
+  Ana->>WEB: Cotiza ultrasonido y elige clínica
+  WEB->>API: PATCH /tramites/:id/contexto (autoguardado)
+  API->>DB: Guarda paso = seleccion_clinica
+  API->>BUS: clinica.seleccionada
+  Ana--xWEB: Cierra la computadora sin confirmar
+
+  Note over Ana,BOT: 2 · WhatsApp (horas después)
+  Ana->>BOT: "Hola"
+  BOT->>API: POST /identidad/resolver (teléfono)
+  API-->>BOT: requiere_verificacion
+  BOT->>Ana: Código OTP
+  Ana->>BOT: 482913
+  BOT->>API: POST /otp/verificar
+  API->>BUS: identidad.verificada · canal.cambiado
+  API-->>BOT: Contexto: ultrasonido + clínica, falta fecha
+  BOT->>Ana: "¿Continuamos donde te quedaste?"
+  Ana->>BOT: Elige fecha
+  BOT->>API: POST /tramites/:id/avanzar (cita_agendada)
+  API->>BUS: cita.agendada
+
+  Note over Ana,CC: 3 · Call Center
+  Ana->>CC: Llama con una duda
+  CC->>API: Buscar paciente + verificar (preguntas)
+  API-->>CC: Contexto + timeline completo
+  BUS-->>CC: Eventos en vivo (Socket.IO)
+  CC->>API: Confirmar cita
+  API->>BUS: cita.confirmada
+
+  Note over Ana,APP: 4 · App
+  BUS-->>APP: Push "Tu cita está confirmada"
+  Ana->>APP: Abre la app
+  APP->>API: GET /pacientes/:id/tramites?activo=true
+  API-->>APP: Cita confirmada + timeline

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { construirModeloTimeline } from '@salud-digna/ui';
-import { apiMobile, TimelineMobileDto, TramiteMobileDto } from '../../src/lib/api';
+import { API_URL_MOBILE, apiMobile, TimelineMobileDto, TramiteMobileDto } from '../../src/lib/api';
 import { useMobileSession } from '../../src/lib/session-context';
 
 export default function DetalleTramiteScreen() {
@@ -12,6 +12,12 @@ export default function DetalleTramiteScreen() {
     () => tramites.find((t) => t.folio === folio) ?? null,
   );
   const [timeline, setTimeline] = useState<TimelineMobileDto[]>([]);
+  const [factura, setFactura] = useState<{
+    folioFiscalSimulado: string;
+    estatus: string;
+    total: number;
+    pdfUrl: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!sesion || !folio) return;
@@ -21,6 +27,10 @@ export default function DetalleTramiteScreen() {
         setTramite(det);
         const tl = await apiMobile.obtenerTimeline(sesion.accessToken, det.pacienteId, det.id);
         setTimeline(tl.items);
+        const fac = await apiMobile.consultarFacturaTramite(sesion.accessToken, det.folio);
+        if (fac.existe && fac.factura && fac.pdfUrl) {
+          setFactura({ ...fac.factura, pdfUrl: fac.pdfUrl });
+        }
       } catch {
         // Mantiene versión en caché si está sin conexión
       }
@@ -51,6 +61,39 @@ export default function DetalleTramiteScreen() {
           <Text style={{ color: paleta.textoSecundario, fontSize: 14 * factorFuente }}>
             {tramite.contexto.estudio?.nombre} — {tramite.contexto.clinica?.nombre}
           </Text>
+        </View>
+      )}
+
+      {factura && (
+        <View
+          style={{
+            backgroundColor: paleta.superficie,
+            padding: 14,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: paleta.borde,
+            gap: 8,
+          }}
+        >
+          <Text style={{ color: paleta.primario, fontWeight: '700', fontSize: 15 * factorFuente }}>
+            Factura simulada ({factura.estatus})
+          </Text>
+          <Text style={{ color: paleta.textoSecundario, fontSize: 13 * factorFuente }}>
+            Folio: {factura.folioFiscalSimulado} · Total: ${factura.total.toFixed(2)} MXN
+          </Text>
+          <Pressable
+            onPress={() => void Linking.openURL(`${API_URL_MOBILE}${factura.pdfUrl}`)}
+            style={{
+              backgroundColor: paleta.primario,
+              padding: 10,
+              borderRadius: 8,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 * factorFuente }}>
+              Descargar factura PDF
+            </Text>
+          </Pressable>
         </View>
       )}
 

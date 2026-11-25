@@ -105,4 +105,30 @@ export const apiMobile = {
       }>;
     }>(`/servicio/estatus${qs}`);
   },
+
+  listarAlertasActivas: (region?: string) => {
+    const qs = region ? `?region=${encodeURIComponent(region)}` : '';
+    return pedir<{
+      total: number;
+      alertas: Array<{
+        id: string;
+        titulo: string;
+        mensaje: string;
+        region: string;
+        nivel: 'informativa' | 'preventiva' | 'urgente';
+      }>;
+    }>(`/alertas/activas${qs}`);
+  },
+
+  consultarFacturaTramite: (token: string, folio: string) =>
+    pedir<{
+      existe: boolean;
+      factura: {
+        id: string;
+        folioFiscalSimulado: string;
+        estatus: string;
+        total: number;
+      } | null;
+      pdfUrl: string | null;
+    }>(`/facturacion/tramites/${encodeURIComponent(folio)}`, { token }),
 };

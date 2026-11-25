@@ -50,5 +50,11 @@
     "casoAmbiguo": "Multiple profiles match this number. Connecting you with an advisor.",
     "noEncontrado": "No account matches this number. We can help you register or connect you with an advisor.",
     "errorOtp": "The code is invalid or expired. Please try again."
+  },
+  "factura": {
+    "sinTramite": "We couldn't find an active request to invoice right now.",
+    "faltanDatos": "To issue your invoice without repeating details, save your RFC, tax regime and postal code once in the web portal or the app.",
+    "leyendaPdf": "Simulated invoice {{folio}} (also available for download in the Salud Digna app).",
+    "descargaEnApp": "Your simulated invoice {{folio}} has been issued. We couldn't attach it here; download it from \"My requests\" on the web or the Salud Digna app."
   }
 }

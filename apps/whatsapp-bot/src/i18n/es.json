@@ -50,5 +50,11 @@
     "casoAmbiguo": "Encontramos más de un perfil asociado a este número. Te conectamos con un asesor para ayudarte de forma segura.",
     "noEncontrado": "No encontramos una cuenta vinculada a este número. Si deseas, podemos iniciar tu registro o conectarte con un asesor.",
     "errorOtp": "El código no es válido o expiró. Puedes escribir \"No puedo entrar a mi cuenta\" nuevamente para solicitar uno nuevo."
+  },
+  "factura": {
+    "sinTramite": "No encontramos un trámite activo para facturar en este momento.",
+    "faltanDatos": "Para emitir tu factura sin repetir datos, guarda tu RFC, régimen fiscal y código postal una sola vez en el portal web o la app.",
+    "leyendaPdf": "Factura simulada {{folio}} (también disponible para descarga en la App Salud Digna).",
+    "descargaEnApp": "Tu factura simulada {{folio}} ya está emitida. No pudimos adjuntarla aquí; descárgala desde \"Mis trámites\" en la web o la App Salud Digna."
   }
 }

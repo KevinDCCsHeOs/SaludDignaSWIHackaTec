@@ -96,7 +96,8 @@ export interface ClienteApiOmnicanal {
     };
     pdfUrl: string;
   }>;
-  obtenerBaseUrl?(): string;
+  /** Descarga el PDF de una factura con el token de servicio (nunca se expone una URL pública). */
+  descargarPdfFactura?(facturaId: string): Promise<Uint8Array>;
   registrarInteraccion(entrada: {
     pacienteId: string;
     tramiteId?: string | null;
@@ -299,8 +300,13 @@ export class ClienteHttpApiBot implements ClienteApiOmnicanal {
     });
   }
 
-  obtenerBaseUrl(): string {
-    return this.baseUrl;
+  async descargarPdfFactura(facturaId: string): Promise<Uint8Array> {
+    const ruta = `/facturacion/${encodeURIComponent(facturaId)}/pdf`;
+    const res = await fetch(`${this.baseUrl}${ruta}`, { headers: this.headers() });
+    if (!res.ok) {
+      throw new Error(`API /facturacion/:id/pdf respondió ${res.status}`);
+    }
+    return new Uint8Array(await res.arrayBuffer());
   }
 
   registrarInteraccion(entrada: {

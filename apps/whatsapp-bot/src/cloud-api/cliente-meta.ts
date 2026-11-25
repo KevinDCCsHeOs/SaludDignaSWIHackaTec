@@ -223,17 +223,55 @@ export class ClienteMetaCloudApi {
     });
   }
 
-  /** Envío de documento PDF (ej. factura simulada, #33). */
-  enviarDocumentoPdf(
+  /**
+   * Sube un archivo a Meta (`POST /{phone-number-id}/media`) y devuelve su `media_id` (#33).
+   * Así el PDF nunca necesita una URL pública: Meta lo guarda en su almacenamiento temporal (30 días).
+   */
+  async subirMedia(
+    contenido: Uint8Array,
+    mimeType: string,
+    nombreArchivo: string,
+  ): Promise<string> {
+    if (!this.estaConfiguradoReal()) {
+      return `media.simulado.${this.secuencia++}`;
+    }
+    const phoneId = this.config.phoneNumberId ?? process.env.WA_PHONE_NUMBER_ID;
+    const token = this.config.accessToken ?? process.env.WA_ACCESS_TOKEN;
+    const version = this.config.graphVersion ?? 'v21.0';
+
+    const form = new FormData();
+    form.append('messaging_product', 'whatsapp');
+    form.append('type', mimeType);
+    form.append('file', new Blob([new Uint8Array(contenido)], { type: mimeType }), nombreArchivo);
+
+    const resp = await fetch(`https://graph.facebook.com/${version}/${phoneId}/media`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const json = (await resp.json().catch(() => ({}))) as RespuestaGraphMeta & { id?: string };
+    if (!resp.ok || !json.id) {
+      console.error(
+        `[whatsapp-bot] Meta rechazó la subida del archivo: HTTP ${resp.status}, ` +
+          `código ${json.error?.code ?? 'n/d'}, subcódigo ${json.error?.error_subcode ?? 'n/d'}`,
+      );
+      throw new Error(`Subida de media rechazada (HTTP ${resp.status})`);
+    }
+    return json.id;
+  }
+
+  /** Envía un PDF (ej. factura simulada, #33): primero lo sube a Meta y luego lo manda por `media_id`. */
+  async enviarDocumentoPdf(
     para: string,
-    enlacePdf: string,
+    contenido: Uint8Array,
     nombreArchivo: string,
     leyenda?: string,
   ): Promise<MensajeSalienteWa> {
+    const mediaId = await this.subirMedia(contenido, 'application/pdf', nombreArchivo);
     return this.despachar(para, 'document', {
       type: 'document',
       document: {
-        link: enlacePdf,
+        id: mediaId,
         filename: nombreArchivo,
         ...(leyenda ? { caption: leyenda } : {}),
       },

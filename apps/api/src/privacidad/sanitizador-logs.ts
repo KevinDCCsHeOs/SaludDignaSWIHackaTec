@@ -82,7 +82,24 @@ export class SanitizedLogger extends ConsoleLogger {
     return mensaje;
   }
 
+  private emitirEstructurado(nivel: string, mensaje: unknown, params: unknown[]): boolean {
+    if (process.env.LOG_FORMATO !== 'json') return false;
+    const entrada = {
+      timestamp: new Date().toISOString(),
+      nivel,
+      servicio: 'api',
+      mensaje: this.sanitizarMensaje(mensaje),
+      ...(params.length > 0 ? { detalle: params.map((p) => this.sanitizarMensaje(p)) } : {}),
+    };
+    const linea = JSON.stringify(entrada);
+    if (nivel === 'error') console.error(linea);
+    else if (nivel === 'warn') console.warn(linea);
+    else console.log(linea);
+    return true;
+  }
+
   override log(message: unknown, ...optionalParams: unknown[]): void {
+    if (this.emitirEstructurado('info', message, optionalParams)) return;
     super.log(
       this.sanitizarMensaje(message),
       ...optionalParams.map((p) => this.sanitizarMensaje(p)),
@@ -90,6 +107,7 @@ export class SanitizedLogger extends ConsoleLogger {
   }
 
   override error(message: unknown, ...optionalParams: unknown[]): void {
+    if (this.emitirEstructurado('error', message, optionalParams)) return;
     super.error(
       this.sanitizarMensaje(message),
       ...optionalParams.map((p) => this.sanitizarMensaje(p)),
@@ -97,6 +115,7 @@ export class SanitizedLogger extends ConsoleLogger {
   }
 
   override warn(message: unknown, ...optionalParams: unknown[]): void {
+    if (this.emitirEstructurado('warn', message, optionalParams)) return;
     super.warn(
       this.sanitizarMensaje(message),
       ...optionalParams.map((p) => this.sanitizarMensaje(p)),

@@ -1,12 +1,24 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { MapaClinicas } from '../../../components/MapaClinicas';
 import { apiWeb, ClinicaDto } from '../../../lib/api';
 import { useAppWeb } from '../../../lib/providers';
+
+const MapaClinicas = dynamic(
+  () => import('../../../components/MapaClinicas').then((m) => m.MapaClinicas),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="sd-card" role="status">
+        Cargando mapa interactivo de clínicas...
+      </div>
+    ),
+  },
+);
 
 function SeleccionClinicaContenido() {
   const { t, token } = useAppWeb();

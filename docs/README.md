@@ -12,6 +12,10 @@
 | [Datos demo y escenario](datos-demo.md) | 30 estudios, 10 clínicas, 15 pacientes ficticios y comandos `seed` / `demo:reset` | #17 |
 | [Glosario médico en lenguaje sencillo](glosario.md) | Modo "Explícame fácil", preparaciones sencillas (ES/EN) y soporte base en náhuatl | #26 |
 | [Normatividad y riesgos](normatividad-riesgos.md) | Mapeo NOM-024-SSA3, NOM-004-SSA3, LFPDPPP, ISO 27001/9001, trazabilidad y matriz de riesgos | #34 |
+| [Operación, respaldos y monitoreo](operacion-respaldos.md) | Cron diario MySQL (7d/4s), simulacro de restauración, Uptime Kuma y logs estructurados | #36 |
+| [Escalabilidad y pruebas de carga](escalabilidad-y-carga.md) | Caché Redis, escenarios k6 (200 VU / 100 rps / 300 sockets), resultados y escalado horizontal | #37 |
+| [Accesibilidad y rendimiento web](accesibilidad-rendimiento.md) | Estándares WCAG 2.1 AA, Lighthouse CI y protocolo con lector de pantalla | #38 |
+| [Checklist pre-demo e imprimible](checklist-demo.md) | Verificación previa, guion de 4 canales y plan B para el día del demo | #39 |
 | Secuencias y flujo de datos | Diagramas de secuencia detallados entre canales | #41 (pendiente) |
 
 ## Cómo editar los diagramas

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { ChatWidget } from '../components/ChatWidget';
+import { ChatWidgetLazy } from '../components/ChatWidgetLazy';
 import { Navbar } from '../components/Navbar';
 import { Providers } from '../lib/providers';
 
@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main id="contenido-principal" className="sd-main">
             {children}
           </main>
-          <ChatWidget />
+          <ChatWidgetLazy />
         </Providers>
       </body>
     </html>

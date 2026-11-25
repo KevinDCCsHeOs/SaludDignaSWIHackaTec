@@ -8,6 +8,8 @@ export interface ApiHealthStatus {
   canalesSoportados: readonly string[];
   estadosTramite: number;
   eventosCatalogo: number;
+  uptimeSegundos: number;
+  memoriaRssMb: number;
   timestamp: string;
 }
 
@@ -18,6 +20,8 @@ export function crearEstadoSaludApi(): ApiHealthStatus {
     canalesSoportados: CANALES_ATENCION,
     estadosTramite: ESTADOS_TRAMITE.length,
     eventosCatalogo: TIPOS_EVENTO.length,
+    uptimeSegundos: Math.round(process.uptime()),
+    memoriaRssMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
     timestamp: new Date().toISOString(),
   };
 }

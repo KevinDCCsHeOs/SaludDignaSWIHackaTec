@@ -29,6 +29,12 @@ export default function AdminDashboardPage() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [alertaTitulo, setAlertaTitulo] = useState('');
+  const [alertaMensaje, setAlertaMensaje] = useState('');
+  const [alertaRegion, setAlertaRegion] = useState('Puebla');
+  const [alertaNivel, setAlertaNivel] = useState<'informativa' | 'preventiva' | 'urgente'>(
+    'preventiva',
+  );
 
   const autorizado = usuario && (usuario.rol === 'admin' || usuario.rol === 'asesor_pro');
 
@@ -48,6 +54,33 @@ export default function AdminDashboardPage() {
     queryFn: () => apiWeb.obtenerEstatusServicio(region || undefined),
     enabled: Boolean(autorizado),
   });
+
+  const { data: alertasData } = useQuery({
+    queryKey: ['alertas', 'activas', region || 'todas'],
+    queryFn: () => apiWeb.listarAlertasActivas(region || undefined),
+    enabled: Boolean(autorizado),
+  });
+
+  const enviarAlerta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !alertaTitulo.trim() || !alertaMensaje.trim()) return;
+    try {
+      const res = await apiWeb.publicarAlerta(token, {
+        titulo: alertaTitulo.trim(),
+        mensaje: alertaMensaje.trim(),
+        region: alertaRegion,
+        nivel: alertaNivel,
+      });
+      setMensaje(
+        `Alerta "${res.alerta.titulo}" publicada para ${alertaRegion} (${res.alerta.destinatariosNotificados} paciente(s) notificados por su canal preferido).`,
+      );
+      setAlertaTitulo('');
+      setAlertaMensaje('');
+      await queryClient.invalidateQueries({ queryKey: ['alertas'] });
+    } catch (err) {
+      setMensaje(err instanceof Error ? err.message : 'No se pudo publicar la alerta');
+    }
+  };
 
   const descargarCsv = async () => {
     if (!token) return;
@@ -275,6 +308,89 @@ export default function AdminDashboardPage() {
                     <option value="retraso">Con retraso</option>
                     <option value="fuera_de_servicio">Fuera de servicio</option>
                   </select>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="sd-card">
+            <h2 style={{ marginTop: 0 }}>Alertas epidemiológicas y prevención (#32)</h2>
+            {usuario.rol === 'admin' && (
+              <form onSubmit={(e) => void enviarAlerta(e)} style={{ marginBottom: '1rem' }}>
+                <div className="sd-grid">
+                  <div className="sd-field">
+                    <label htmlFor="alr-titulo">Título de la alerta</label>
+                    <input
+                      id="alr-titulo"
+                      required
+                      minLength={4}
+                      value={alertaTitulo}
+                      onChange={(e) => setAlertaTitulo(e.target.value)}
+                      placeholder="Ej. Prevención de dengue en Puebla"
+                    />
+                  </div>
+                  <div className="sd-field">
+                    <label htmlFor="alr-region">Región destinataria</label>
+                    <select
+                      id="alr-region"
+                      value={alertaRegion}
+                      onChange={(e) => setAlertaRegion(e.target.value)}
+                    >
+                      <option value="Puebla">Puebla</option>
+                      <option value="CDMX">CDMX</option>
+                      <option value="Monterrey">Monterrey</option>
+                      <option value="todas">Todas las regiones</option>
+                    </select>
+                  </div>
+                  <div className="sd-field">
+                    <label htmlFor="alr-nivel">Nivel</label>
+                    <select
+                      id="alr-nivel"
+                      value={alertaNivel}
+                      onChange={(e) =>
+                        setAlertaNivel(e.target.value as 'informativa' | 'preventiva' | 'urgente')
+                      }
+                    >
+                      <option value="informativa">Informativa</option>
+                      <option value="preventiva">Preventiva</option>
+                      <option value="urgente">Urgente</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="sd-field">
+                  <label htmlFor="alr-msg">Mensaje preventivo</label>
+                  <textarea
+                    id="alr-msg"
+                    rows={2}
+                    required
+                    minLength={10}
+                    value={alertaMensaje}
+                    onChange={(e) => setAlertaMensaje(e.target.value)}
+                    placeholder="Indica recomendaciones preventivas para los pacientes de la región..."
+                  />
+                </div>
+                <button type="submit" className="sd-btn-primary">
+                  Publicar y notificar región
+                </button>
+              </form>
+            )}
+            <div className="sd-grid">
+              {(alertasData?.alertas ?? []).map((a) => (
+                <article key={a.id} className="sd-card" style={{ marginBottom: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <strong>{a.titulo}</strong>
+                    <span className="sd-badge">{a.nivel}</span>
+                  </div>
+                  <p className="sd-muted" style={{ margin: '0.35rem 0' }}>
+                    Región: {a.region} · Notificados: {a.destinatariosNotificados}
+                  </p>
+                  <p style={{ margin: 0 }}>{a.mensaje}</p>
                 </article>
               ))}
             </div>

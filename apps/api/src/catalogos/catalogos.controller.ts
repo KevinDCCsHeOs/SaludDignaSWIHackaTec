@@ -9,9 +9,9 @@ export class CatalogosController {
 
   @Publico()
   @Get('estudios')
-  listarEstudios(@Query('categoria') categoria?: CategoriaEstudio, @Query('q') q?: string) {
-    const estudios = this.catalogos.listarEstudios({ categoria, q });
-    return { total: estudios.length, estudios };
+  async listarEstudios(@Query('categoria') categoria?: CategoriaEstudio, @Query('q') q?: string) {
+    const { estudios, origen } = await this.catalogos.listarEstudiosCacheados({ categoria, q });
+    return { total: estudios.length, origen, estudios };
   }
 
   @Publico()
@@ -22,9 +22,12 @@ export class CatalogosController {
 
   @Publico()
   @Get('clinicas')
-  listarClinicas(@Query('region') region?: string, @Query('estatus') estatus?: EstatusClinica) {
-    const clinicas = this.catalogos.listarClinicas({ region, estatus });
-    return { total: clinicas.length, clinicas };
+  async listarClinicas(
+    @Query('region') region?: string,
+    @Query('estatus') estatus?: EstatusClinica,
+  ) {
+    const { clinicas, origen } = await this.catalogos.listarClinicasCacheadas({ region, estatus });
+    return { total: clinicas.length, origen, clinicas };
   }
 
   @Publico()

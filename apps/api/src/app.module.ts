@@ -17,6 +17,7 @@ import { PrivacidadModule } from './privacidad/privacidad.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { ResultadosModule } from './resultados/resultados.module';
 import { ServicioModule } from './servicio/servicio.module';
+import { TemporizadoresModule } from './temporizadores/temporizadores.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { TramitesModule } from './tramites/tramites.module';
@@ -33,6 +34,7 @@ import { TramitesModule } from './tramites/tramites.module';
     OtpModule,
     AuthModule,
     TramitesModule,
+    TemporizadoresModule,
     ContextoModule,
     TimelineModule,
     TicketsModule,

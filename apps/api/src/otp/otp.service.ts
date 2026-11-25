@@ -12,7 +12,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import type { CanalAtencion } from '@salud-digna/shared';
-import { CANALES_ATENCION } from '@salud-digna/shared';
+import { CANALES_ATENCION, PLAZOS } from '@salud-digna/shared';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { AuditoriaService } from '../auditoria/auditoria.service';
@@ -23,7 +23,9 @@ import { PacienteStoreService } from '../identidad/paciente-store.service';
 import { CifradoService } from '../privacidad/cifrado.service';
 import { despacharOtpWhatsapp } from './despacho-otp-whatsapp';
 
-const TTL_OTP_SEGUNDOS = 300; // 5 min (#8)
+// Validez del código: 15 min según `plazos.json` del traspaso v2 (no se reduce en modo exposición)
+const TTL_OTP_SEGUNDOS = PLAZOS.produccion.otp;
+const MINUTOS_OTP = Math.round(TTL_OTP_SEGUNDOS / 60);
 const TTL_BLOQUEO_SEGUNDOS = 900; // 15 min tras 3 fallos (#8)
 const TTL_SESION_VERIFICADA_SEGUNDOS = 1800; // 30 min (#8)
 const MAX_INTENTOS_OTP = 3;
@@ -67,6 +69,8 @@ interface RegistroOtpHash {
 @Injectable()
 export class OtpService {
   private readonly despachosSimulados: DespachoOtpSimulado[] = [];
+  /** Códigos enviados y aún sin usar: al vencer se registra `identidad.codigo_vencido` (v2). */
+  private readonly pendientes = new Map<string, { canal: CanalAtencion; venceEn: string }>();
 
   constructor(
     private readonly kv: KeyValueStoreService,
@@ -156,6 +160,20 @@ export class OtpService {
       await despacharOtpWhatsapp(paciente.telefonoE164, codigo, paciente.idioma, origen);
     }
 
+    const venceEn = new Date(Date.now() + TTL_OTP_SEGUNDOS * 1000).toISOString();
+    this.pendientes.set(pacienteId, { canal, venceEn });
+    // Nunca lleva el código: solo que se envió y cuándo vence
+    await this.eventPublisher.publicar({
+      tipo: 'identidad.codigo_enviado',
+      version: 1,
+      pacienteId,
+      tramiteId: null,
+      canal,
+      actor: { tipo: 'sistema', id: 'otp' },
+      rolActor: 'sistema',
+      datos: { canalEnvio: canal, venceEn },
+    });
+
     await this.auditoria.registrar({
       usuarioId: null,
       rol: 'paciente',
@@ -172,8 +190,34 @@ export class OtpService {
       enviado: true,
       canal,
       expiraEnSegundos: TTL_OTP_SEGUNDOS,
-      mensaje: 'Enviamos un código de verificación de 6 dígitos válido por 5 minutos.',
+      mensaje: `Enviamos un código de verificación de 6 dígitos válido por ${MINUTOS_OTP} minutos.`,
     };
+  }
+
+  /**
+   * Registra los códigos que vencieron sin usarse, con la hora del umbral (v2). Antes de mostrar
+   * datos sensibles se pedirá uno nuevo. Lo llama `TemporizadoresService`.
+   */
+  async vencerCodigosPendientes(ahora = Date.now()): Promise<number> {
+    let vencidos = 0;
+    for (const [pacienteId, pendiente] of [...this.pendientes.entries()]) {
+      if (Date.parse(pendiente.venceEn) > ahora) continue;
+      this.pendientes.delete(pacienteId);
+      vencidos++;
+      await this.eventPublisher.publicar({
+        tipo: 'identidad.codigo_vencido',
+        version: 1,
+        pacienteId,
+        tramiteId: null,
+        canal: pendiente.canal,
+        actor: { tipo: 'sistema', id: 'temporizadores' },
+        rolActor: 'sistema',
+        ocurridoEn: pendiente.venceEn,
+        llaveIdempotencia: `identidad.codigo_vencido:${pacienteId}:${pendiente.venceEn}`,
+        datos: { canalEnvio: pendiente.canal },
+      });
+    }
+    return vencidos;
   }
 
   async verificarOtp(
@@ -264,6 +308,7 @@ export class OtpService {
     }
 
     await this.kv.del(this.claveOtp(pacienteId));
+    this.pendientes.delete(pacienteId);
     const sesionValidaHasta = new Date(
       Date.now() + TTL_SESION_VERIFICADA_SEGUNDOS * 1000,
     ).toISOString();

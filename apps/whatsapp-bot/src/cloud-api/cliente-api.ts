@@ -11,8 +11,20 @@ export interface ContextoPacienteApi {
     estudio: { id: string; nombre: string; precio: number } | null;
     clinica: { id: string; nombre: string; region?: string } | null;
     pendientes: string[];
+    /** Canal propietario del trámite (v2): si es el Call Center, el bot no escribe. */
+    propietario?: { canal: CanalAtencion; hasta: string; exclusivo: boolean } | null;
   };
   resumen: string;
+}
+
+/** Reporte de inactividad de la conversación para el núcleo (v2). */
+export interface ReporteInactividadWa {
+  pacienteId: string;
+  tipo: 'aviso' | 'cierre';
+  ocurridoEn: string;
+  inactivoSegundos: number;
+  cierreEnSegundos: number;
+  perfilPlazos: 'produccion' | 'exposicion';
 }
 
 export interface ClinicaApi {
@@ -97,6 +109,8 @@ export interface ClienteApiOmnicanal {
     };
     pdfUrl: string;
   }>;
+  /** Inactividad de la conversación: aviso o cierre con la hora del umbral (v2). */
+  reportarInactividad?(reporte: ReporteInactividadWa): Promise<void>;
   /** Conversación del bot guardada por el API en Redis (clave = SHA-256 del teléfono). */
   obtenerSesionWa?(clave: string): Promise<SesionDialogoWa | null>;
   guardarSesionWa?(clave: string, sesion: SesionDialogoWa): Promise<void>;
@@ -301,6 +315,13 @@ export class ClienteHttpApiBot implements ClienteApiOmnicanal {
         pacienteId: entrada.pacienteId,
         canal: 'whatsapp',
       }),
+    });
+  }
+
+  async reportarInactividad(reporte: ReporteInactividadWa): Promise<void> {
+    await this.pedir('/sesiones/inactividad', {
+      method: 'POST',
+      body: JSON.stringify(reporte),
     });
   }
 

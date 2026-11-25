@@ -4,6 +4,7 @@ import mensajesNah from '../i18n/nah.json';
 import type { ClienteApiOmnicanal } from '../cloud-api/cliente-api';
 import type { ClienteMetaCloudApi } from '../cloud-api/cliente-meta';
 import type { IdiomaBotWa, SesionDialogoWa, SesionWaStore } from '../cloud-api/sesion-store';
+import { obtenerPlazos, perfilPlazosDesdeEntorno } from '@salud-digna/shared';
 import {
   esIntencionRecuperacionAcceso,
   manejarRecuperacionAccesoWhatsapp,
@@ -60,6 +61,79 @@ export class MaquinaDialogoWhatsapp {
     private readonly sesiones: SesionWaStore,
   ) {}
 
+  /**
+   * Temporizadores de la conversación (traspaso v2, sección 5):
+   * - Aviso: un solo mensaje que ya anuncia el cierre y cómo retomar.
+   * - Cierre: sin mensaje; el núcleo pausa el trámite conservando todo.
+   * Los eventos se registran con la hora del umbral, no con la de detección.
+   */
+  async revisarInactividad(ahora = Date.now()): Promise<number> {
+    const perfil = perfilPlazosDesdeEntorno(process.env.PLAZOS_PERFIL);
+    const plazos = obtenerPlazos(perfil);
+    let acciones = 0;
+    for (const sesion of this.sesiones.listar()) {
+      // Conversaciones sin empezar, cerradas o atendidas por teléfono no cuentan
+      if (sesion.paso === 'inicio' || sesion.cerradaEn || sesion.avisoAtencionTelefonicaEn)
+        continue;
+      const ultimo = Date.parse(sesion.ultimoMensajeEn);
+      const inactivo = (ahora - ultimo) / 1000;
+
+      if (inactivo >= plazos.cierre) {
+        const umbral = new Date(ultimo + plazos.cierre * 1000).toISOString();
+        sesion.cerradaEn = umbral;
+        this.sesiones.guardar(sesion);
+        acciones++;
+        if (sesion.pacienteId && this.api.reportarInactividad) {
+          await this.api
+            .reportarInactividad({
+              pacienteId: sesion.pacienteId,
+              tipo: 'cierre',
+              ocurridoEn: umbral,
+              inactivoSegundos: plazos.cierre,
+              cierreEnSegundos: 0,
+              perfilPlazos: perfil,
+            })
+            .catch((error: unknown) => {
+              console.error(
+                `[whatsapp-bot] No se pudo reportar el cierre: ${(error as Error).message}`,
+              );
+            });
+        }
+        continue;
+      }
+
+      if (inactivo >= plazos.aviso && !sesion.avisoInactividadEn) {
+        const umbral = new Date(ultimo + plazos.aviso * 1000).toISOString();
+        sesion.avisoInactividadEn = umbral;
+        this.sesiones.guardar(sesion);
+        acciones++;
+        const restante = plazos.cierre - plazos.aviso;
+        const minutos = restante >= 60 ? `${Math.round(restante / 60)} min` : `${restante} s`;
+        await this.meta.enviarTexto(
+          sesion.telefono,
+          interpolar(textosDe(sesion.idioma).sesion.avisoInactividad, { minutos }),
+        );
+        if (sesion.pacienteId && this.api.reportarInactividad) {
+          await this.api
+            .reportarInactividad({
+              pacienteId: sesion.pacienteId,
+              tipo: 'aviso',
+              ocurridoEn: umbral,
+              inactivoSegundos: plazos.aviso,
+              cierreEnSegundos: restante,
+              perfilPlazos: perfil,
+            })
+            .catch((error: unknown) => {
+              console.error(
+                `[whatsapp-bot] No se pudo reportar el aviso: ${(error as Error).message}`,
+              );
+            });
+        }
+      }
+    }
+    return acciones;
+  }
+
   async procesarMensajeEntrante(msg: MensajeEntranteWa): Promise<SesionDialogoWa> {
     const ahora = new Date().toISOString();
     const texto = (msg.botonId ?? msg.texto).trim();
@@ -78,6 +152,14 @@ export class MaquinaDialogoWhatsapp {
       ultimoMensajeEn: ahora,
     };
     sesion.ultimoMensajeEn = ahora;
+    // Mensaje nuevo: el reloj de inactividad vuelve a empezar (v2)
+    sesion.avisoInactividadEn = null;
+    if (sesion.cerradaEn) {
+      // Se cierra la conversación, no el trámite: al volver se valida identidad y se retoma
+      sesion.cerradaEn = null;
+      sesion.paso = 'inicio';
+      sesion.pasoInterrumpido = null;
+    }
     const idiomaDetectado = detectarIdiomaBot(texto, sesion.idioma);
     const cambioIdioma = idiomaDetectado !== sesion.idioma;
     sesion.idioma = idiomaDetectado;
@@ -110,6 +192,27 @@ export class MaquinaDialogoWhatsapp {
       );
       this.sesiones.guardar(sesion);
       return sesion;
+    }
+
+    // 0.5 Canal propietario (v2): si el Call Center atiende el trámite, el bot no escribe.
+    //     Avisa una sola vez y guarda silencio para no cruzar mensajes ni generar costo.
+    if (sesion.pacienteId && sesion.paso !== 'inicio' && sesion.paso !== 'esperando_otp') {
+      const ctx = await this.api.obtenerContexto(sesion.pacienteId).catch(() => null);
+      const propietario = ctx?.contexto?.propietario;
+      const enLlamada =
+        propietario &&
+        propietario.exclusivo &&
+        propietario.canal !== 'whatsapp' &&
+        Date.parse(propietario.hasta) > Date.now();
+      if (enLlamada) {
+        if (!sesion.avisoAtencionTelefonicaEn) {
+          sesion.avisoAtencionTelefonicaEn = ahora;
+          await this.meta.enviarTexto(msg.telefono, i18n.sesion.atencionTelefonica);
+        }
+        this.sesiones.guardar(sesion);
+        return sesion;
+      }
+      sesion.avisoAtencionTelefonicaEn = null;
     }
 
     // 1. Comando global "asesor" / "humano" en cualquier momento (#21, #25)

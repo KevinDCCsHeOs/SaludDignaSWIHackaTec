@@ -208,6 +208,18 @@ export function crearServidorBot(opciones: OpcionesServidorBot = {}) {
     res.end(JSON.stringify({ error: 'Ruta no encontrada' }));
   });
 
+  // Temporizadores de la conversación (v2): aviso único y cierre por inactividad
+  if (process.env.NODE_ENV !== 'test') {
+    const cadaMs = process.env.PLAZOS_PERFIL === 'exposicion' ? 2_000 : 15_000;
+    const intervalo = setInterval(() => {
+      void dialogo.revisarInactividad().catch((error: unknown) => {
+        console.error(`[whatsapp-bot] Fallo al revisar inactividad: ${describirError(error)}`);
+      });
+    }, cadaMs);
+    intervalo.unref();
+    server.on('close', () => clearInterval(intervalo));
+  }
+
   return {
     server,
     meta,

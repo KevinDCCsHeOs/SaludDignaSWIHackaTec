@@ -15,7 +15,14 @@ import type {
   TipoActor,
   TipoTramite,
 } from '@salud-digna/shared';
-import { CANALES_ATENCION, ESTADOS_TRAMITE, TIPOS_TRAMITE } from '@salud-digna/shared';
+import {
+  CANALES_ATENCION,
+  ESTADOS_TRAMITE,
+  TIPOS_TRAMITE,
+  obtenerPlazos,
+  perfilPlazosDesdeEntorno,
+  type Plazos,
+} from '@salud-digna/shared';
 import { z } from 'zod';
 import { CatalogosService } from '../catalogos/catalogos.service';
 import { PersistenciaService } from '../common/persistencia/persistencia.service';
@@ -41,6 +48,24 @@ export interface ContextoTramite {
   ultimoCanal: CanalAtencion;
   actualizadoEn: string;
   conflictos: ConflictoContexto[];
+  /** Versión del trámite: aumenta con cada escritura; una escritura con versión vieja da 409 (v2). */
+  versionTramite?: number;
+  /** Canal propietario con caducidad (lease, v2). */
+  propietario?: PropietarioTramite | null;
+  /** Horario apartado sin confirmar (v2): se libera al vencer el plazo. */
+  cupo?: { apartadoHasta: string; liberadoEn: string | null } | null;
+}
+
+/**
+ * Un solo canal propietario a la vez (traspaso v2, principio 6). `exclusivo` lo usa el Call Center:
+ * mientras dura, los demás canales no escriben. Un canal conversacional (web, app, WhatsApp) se
+ * transfiere solo al escribir desde otro canal.
+ */
+export interface PropietarioTramite {
+  canal: CanalAtencion;
+  actorId: string;
+  hasta: string;
+  exclusivo: boolean;
 }
 
 export interface PasoTramiteRegistro {
@@ -103,16 +128,22 @@ export const AvanzarTramiteSchema = z.object({
   fechaHora: z.string().datetime({ offset: true }).optional(),
   resultadoId: z.string().min(1).max(36).optional(),
   datos: z.record(z.unknown()).optional(),
+  /** Versión que el cliente vio; si el trámite cambió en otro canal responde 409 (v2). */
+  versionEsperada: z.number().int().positive().optional(),
 });
 
 export const PausarTramiteSchema = z.object({
   canal: z.enum(CANALES_ATENCION),
   motivo: z.string().min(1).max(200).optional(),
   pendientes: z.array(z.string().min(1).max(80)).optional(),
+  /** Versión que el cliente vio; si el trámite cambió en otro canal responde 409 (v2). */
+  versionEsperada: z.number().int().positive().optional(),
 });
 
 export const RetomarTramiteSchema = z.object({
   canal: z.enum(CANALES_ATENCION),
+  /** Versión que el cliente vio; si el trámite cambió en otro canal responde 409 (v2). */
+  versionEsperada: z.number().int().positive().optional(),
 });
 
 export const ESTADOS_TERMINALES_TRAMITE: readonly EstadoTramite[] = ['cerrado', 'cancelado'];
@@ -124,6 +155,8 @@ export function esEstadoTerminal(estado: EstadoTramite): boolean {
 export const CancelarTramiteSchema = z.object({
   canal: z.enum(CANALES_ATENCION),
   motivo: z.string().min(1).max(200).optional(),
+  /** Versión que el cliente vio; si el trámite cambió en otro canal responde 409 (v2). */
+  versionEsperada: z.number().int().positive().optional(),
 });
 
 const TTL_CACHE_CONTEXTO_SEG = 24 * 60 * 60; // 24 h (#13)
@@ -132,6 +165,8 @@ const TTL_CACHE_CONTEXTO_SEG = 24 * 60 * 60; // 24 h (#13)
 export class TramitesService implements OnModuleInit {
   private readonly tramites = new Map<string, TramiteRegistro>();
   private secuenciaFolio = 1;
+  /** Perfil de temporizadores (`PLAZOS_PERFIL`): producción o exposición (v2). */
+  readonly plazos: Plazos = obtenerPlazos(perfilPlazosDesdeEntorno(process.env.PLAZOS_PERFIL));
 
   constructor(
     private readonly catalogos: CatalogosService,
@@ -271,6 +306,281 @@ export class TramitesService implements OnModuleInit {
       datos: opciones?.datos ?? null,
       iniciadoEn: ahora,
       completadoEn: opciones?.completado ? ahora : null,
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Canal propietario y versión del trámite (traspaso v2, sección 6)
+  // --------------------------------------------------------------------------
+
+  versionDe(tramite: TramiteRegistro): number {
+    return tramite.contexto.versionTramite ?? 1;
+  }
+
+  propietarioActivo(tramite: TramiteRegistro, ahora = Date.now()): PropietarioTramite | null {
+    const p = tramite.contexto.propietario;
+    return p && Date.parse(p.hasta) > ahora ? p : null;
+  }
+
+  private nuevoPropietario(
+    canal: CanalAtencion,
+    actorId: string,
+    exclusivo: boolean,
+  ): PropietarioTramite {
+    return {
+      canal,
+      actorId,
+      exclusivo,
+      hasta: new Date(Date.now() + this.plazos.lease * 1000).toISOString(),
+    };
+  }
+
+  private async publicarTransferencia(
+    tramite: TramiteRegistro,
+    anterior: CanalAtencion | null,
+    nuevo: PropietarioTramite,
+    actor: { tipo: TipoActor; id: string },
+  ): Promise<void> {
+    await this.eventBus.publish({
+      tipo: 'contexto.transferido',
+      version: 1,
+      pacienteId: tramite.pacienteId,
+      tramiteId: tramite.id,
+      canal: nuevo.canal,
+      actor,
+      rolActor:
+        actor.tipo === 'paciente' ? 'titular' : actor.tipo === 'asesor_ia' ? 'bot' : 'operador',
+      versionTramite: this.versionDe(tramite),
+      datos: {
+        folio: tramite.folio,
+        canalAnterior: anterior,
+        canalNuevo: nuevo.canal,
+        versionNueva: this.versionDe(tramite),
+        propietarioHasta: nuevo.hasta,
+      },
+    });
+  }
+
+  /**
+   * Regla de escritura v2, antes de cualquier cambio:
+   * 1. Si el cliente envía la versión que vio y ya no es la actual → 409 (escritura obsoleta).
+   * 2. Si otro canal tiene el trámite en exclusiva (llamada en curso) → 409.
+   * 3. Si otro canal conversacional lo tenía, el permiso se transfiere al canal que escribe.
+   * El sistema (temporizadores) escribe sin tomar el permiso.
+   */
+  async controlarEscritura(
+    tramite: TramiteRegistro,
+    canal: CanalAtencion,
+    actor: { tipo: TipoActor; id: string },
+    versionEsperada?: number,
+  ): Promise<void> {
+    const versionActual = this.versionDe(tramite);
+    if (versionEsperada !== undefined && versionEsperada !== versionActual) {
+      throw new ConflictException({
+        mensaje: `El trámite ${tramite.folio} cambió en otro canal (versión ${versionActual}); vuelve a cargarlo antes de continuar`,
+        codigo: 'VERSION_OBSOLETA',
+        versionActual,
+      });
+    }
+    if (actor.tipo === 'sistema') return;
+
+    const actual = this.propietarioActivo(tramite);
+    if (actual && actual.canal !== canal && actual.exclusivo) {
+      throw new ConflictException({
+        mensaje: `El trámite ${tramite.folio} está en atención por ${actual.canal}; ese canal lo conserva hasta liberarlo`,
+        codigo: 'CANAL_NO_PROPIETARIO',
+        canalPropietario: actual.canal,
+      });
+    }
+
+    if (actual && actual.canal === canal) {
+      // Mismo canal: renovar el permiso
+      actual.hasta = this.nuevoPropietario(canal, actual.actorId, actual.exclusivo).hasta;
+      return;
+    }
+    const nuevo = this.nuevoPropietario(canal, actor.id, false);
+    tramite.contexto.propietario = nuevo;
+    if (actual) {
+      await this.publicarTransferencia(tramite, actual.canal, nuevo, actor);
+    }
+  }
+
+  /** Cada escritura aceptada incrementa la versión del trámite. */
+  incrementarVersion(tramite: TramiteRegistro): number {
+    tramite.contexto.versionTramite = this.versionDe(tramite) + 1;
+    return tramite.contexto.versionTramite;
+  }
+
+  /** El Call Center toma el trámite en exclusiva al atender la llamada (contexto.transferido). */
+  async tomarPropietario(
+    idOFolio: string,
+    canal: CanalAtencion,
+    actor: { tipo: TipoActor; id: string },
+    versionEsperada?: number,
+  ): Promise<TramiteRegistro> {
+    const tramite = this.obtenerPorIdOFolio(idOFolio);
+    if (esEstadoTerminal(tramite.estado)) {
+      throw new ConflictException(`El trámite ${tramite.folio} está ${tramite.estado}`);
+    }
+    const versionActual = this.versionDe(tramite);
+    if (versionEsperada !== undefined && versionEsperada !== versionActual) {
+      throw new ConflictException({
+        mensaje: `El trámite ${tramite.folio} cambió (versión ${versionActual}); vuelve a cargarlo`,
+        codigo: 'VERSION_OBSOLETA',
+        versionActual,
+      });
+    }
+    const actual = this.propietarioActivo(tramite);
+    if (actual && actual.exclusivo && actual.canal === canal && actual.actorId !== actor.id) {
+      throw new ConflictException({
+        mensaje: `Otro asesor ya atiende el trámite ${tramite.folio}`,
+        codigo: 'CANAL_NO_PROPIETARIO',
+        canalPropietario: actual.canal,
+      });
+    }
+    const nuevo = this.nuevoPropietario(canal, actor.id, true);
+    tramite.contexto.propietario = nuevo;
+    this.incrementarVersion(tramite);
+    tramite.actualizadoEn = new Date().toISOString();
+    await this.sincronizarCacheContexto(tramite);
+    await this.publicarTransferencia(tramite, actual?.canal ?? null, nuevo, actor);
+    return tramite;
+  }
+
+  /** Renueva el permiso exclusivo mientras la llamada sigue (latido de la consola). */
+  async renovarPropietario(
+    idOFolio: string,
+    actor: { tipo: TipoActor; id: string },
+  ): Promise<TramiteRegistro> {
+    const tramite = this.obtenerPorIdOFolio(idOFolio);
+    const actual = this.propietarioActivo(tramite);
+    if (!actual || actual.actorId !== actor.id) {
+      throw new ConflictException({
+        mensaje: 'El permiso del canal ya no es tuyo; vuelve a tomar el trámite',
+        codigo: 'PERMISO_PERDIDO',
+      });
+    }
+    actual.hasta = this.nuevoPropietario(actual.canal, actor.id, actual.exclusivo).hasta;
+    await this.sincronizarCacheContexto(tramite);
+    return tramite;
+  }
+
+  /** Al colgar se libera el permiso; cualquier canal puede retomar. */
+  async liberarPropietario(
+    idOFolio: string,
+    actor: { tipo: TipoActor; id: string },
+  ): Promise<TramiteRegistro> {
+    const tramite = this.obtenerPorIdOFolio(idOFolio);
+    const actual = this.propietarioActivo(tramite);
+    if (!actual) return tramite;
+    if (actual.actorId !== actor.id && actor.tipo !== 'admin') {
+      throw new ConflictException({
+        mensaje: 'Solo quien tiene el trámite puede liberarlo',
+        codigo: 'CANAL_NO_PROPIETARIO',
+        canalPropietario: actual.canal,
+      });
+    }
+    tramite.contexto.propietario = null;
+    await this.sincronizarCacheContexto(tramite);
+    await this.eventBus.publish({
+      tipo: 'canal.propietario_liberado',
+      version: 1,
+      pacienteId: tramite.pacienteId,
+      tramiteId: tramite.id,
+      canal: actual.canal,
+      actor,
+      rolActor: 'operador',
+      versionTramite: this.versionDe(tramite),
+      datos: { folio: tramite.folio, canalLiberado: actual.canal, motivo: 'liberado' },
+    });
+    return tramite;
+  }
+
+  /**
+   * Revisión periódica de plazos (la llama `TemporizadoresService`). Cada vencimiento se registra
+   * con la hora del umbral (`ocurridoEn`) y una llave de idempotencia, aunque se detecte tarde.
+   */
+  async revisarVencimientos(ahora = Date.now()): Promise<number> {
+    let vencidos = 0;
+    for (const tramite of this.listarTodosActivos()) {
+      const p = tramite.contexto.propietario;
+      if (p && Date.parse(p.hasta) <= ahora) {
+        tramite.contexto.propietario = null;
+        await this.sincronizarCacheContexto(tramite);
+        vencidos++;
+        // Solo la llamada (permiso exclusivo) deja rastro: los permisos conversacionales vencen
+        // en silencio para no llenar la línea de tiempo con cada pausa breve del paciente.
+        if (p.exclusivo) {
+          await this.eventBus.publish({
+            tipo: 'canal.propietario_liberado',
+            version: 1,
+            pacienteId: tramite.pacienteId,
+            tramiteId: tramite.id,
+            canal: p.canal,
+            actor: { tipo: 'sistema', id: 'temporizadores' },
+            rolActor: 'sistema',
+            ocurridoEn: p.hasta,
+            versionTramite: this.versionDe(tramite),
+            llaveIdempotencia: `canal.propietario_liberado:${tramite.id}:${p.hasta}`,
+            datos: { folio: tramite.folio, canalLiberado: p.canal, motivo: 'caducado' },
+          });
+        }
+      }
+
+      const cupo = tramite.contexto.cupo;
+      if (
+        cupo &&
+        !cupo.liberadoEn &&
+        tramite.cita?.estatus === 'agendada' &&
+        Date.parse(cupo.apartadoHasta) <= ahora
+      ) {
+        cupo.liberadoEn = cupo.apartadoHasta;
+        await this.sincronizarCacheContexto(tramite);
+        vencidos++;
+        await this.eventBus.publish({
+          tipo: 'cupo.liberado',
+          version: 1,
+          pacienteId: tramite.pacienteId,
+          tramiteId: tramite.id,
+          canal: tramite.ultimoCanal,
+          actor: { tipo: 'sistema', id: 'temporizadores' },
+          rolActor: 'sistema',
+          ocurridoEn: cupo.apartadoHasta,
+          versionTramite: this.versionDe(tramite),
+          llaveIdempotencia: `cupo.liberado:${tramite.id}:${cupo.apartadoHasta}`,
+          datos: {
+            folio: tramite.folio,
+            clinicaId: tramite.cita.clinicaId,
+            fechaHora: tramite.cita.fechaHora,
+          },
+        });
+      }
+    }
+    return vencidos;
+  }
+
+  private async publicarCitaApartada(
+    tramite: TramiteRegistro,
+    canal: CanalAtencion,
+    actor: { tipo: TipoActor; id: string },
+  ): Promise<void> {
+    if (!tramite.cita) return;
+    const apartadoHasta = new Date(Date.now() + this.plazos.cupo * 1000).toISOString();
+    tramite.contexto.cupo = { apartadoHasta, liberadoEn: null };
+    await this.eventBus.publish({
+      tipo: 'cita.apartada',
+      version: 1,
+      pacienteId: tramite.pacienteId,
+      tramiteId: tramite.id,
+      canal,
+      actor,
+      versionTramite: this.versionDe(tramite),
+      datos: {
+        folio: tramite.folio,
+        clinicaId: tramite.cita.clinicaId,
+        fechaHora: tramite.cita.fechaHora,
+        apartadoHasta,
+      },
     });
   }
 
@@ -452,6 +762,7 @@ export class TramitesService implements OnModuleInit {
     if (!chequeo.valida) {
       throw new ConflictException(chequeo.motivo);
     }
+    await this.controlarEscritura(tramite, data.canal, actor, data.versionEsperada);
 
     const canalAnterior = tramite.ultimoCanal;
     const estadoPrevio = tramite.estado;
@@ -521,6 +832,14 @@ export class TramitesService implements OnModuleInit {
       completado: data.estadoDestino === 'cerrado' || data.estadoDestino === 'cita_confirmada',
     });
 
+    // Confirmar un horario que ya se liberó: se vuelve a apartar sin pedir datos (v2)
+    const reapartar =
+      data.estadoDestino === 'cita_confirmada' && Boolean(tramite.contexto.cupo?.liberadoEn);
+    if (data.estadoDestino === 'cita_confirmada' && !reapartar) {
+      tramite.contexto.cupo = null;
+    }
+
+    this.incrementarVersion(tramite);
     await this.sincronizarCacheContexto(tramite);
 
     // Emitir cambio de canal si el trámite continuó en otro canal
@@ -572,7 +891,15 @@ export class TramitesService implements OnModuleInit {
           codigoConfirmacion: tramite.cita.codigoConfirmacion,
         },
       });
+      // El horario queda apartado; si nadie lo confirma a tiempo se libera (v2)
+      await this.publicarCitaApartada(tramite, data.canal, actor);
+      await this.sincronizarCacheContexto(tramite);
     } else if (data.estadoDestino === 'cita_confirmada' && tramite.cita && clinica) {
+      if (reapartar) {
+        await this.publicarCitaApartada(tramite, data.canal, actor);
+        tramite.contexto.cupo = null;
+        await this.sincronizarCacheContexto(tramite);
+      }
       await this.eventBus.publish({
         tipo: 'cita.confirmada',
         version: 1,
@@ -628,6 +955,7 @@ export class TramitesService implements OnModuleInit {
     idOFolio: string,
     entrada: z.input<typeof PausarTramiteSchema>,
     actor: { tipo: TipoActor; id: string },
+    opciones: { ocurridoEn?: string } = {},
   ): Promise<TramiteRegistro> {
     const parsed = PausarTramiteSchema.safeParse(entrada);
     if (!parsed.success) {
@@ -635,6 +963,7 @@ export class TramitesService implements OnModuleInit {
     }
 
     const tramite = this.obtenerPorIdOFolio(idOFolio);
+    await this.controlarEscritura(tramite, parsed.data.canal, actor, parsed.data.versionEsperada);
     const chequeo = validarTransicionTramite(tramite.estado, 'pausado', {});
     if (!chequeo.valida) {
       throw new ConflictException(chequeo.motivo);
@@ -653,6 +982,7 @@ export class TramitesService implements OnModuleInit {
       tramite.contexto.pendientes = parsed.data.pendientes;
     }
 
+    this.incrementarVersion(tramite);
     await this.sincronizarCacheContexto(tramite);
 
     await this.eventBus.publish({
@@ -662,6 +992,8 @@ export class TramitesService implements OnModuleInit {
       tramiteId: tramite.id,
       canal: parsed.data.canal,
       actor,
+      ...(opciones.ocurridoEn ? { ocurridoEn: opciones.ocurridoEn } : {}),
+      versionTramite: this.versionDe(tramite),
       datos: {
         folio: tramite.folio,
         estadoPrevio,
@@ -685,6 +1017,7 @@ export class TramitesService implements OnModuleInit {
     }
 
     const tramite = this.obtenerPorIdOFolio(idOFolio);
+    await this.controlarEscritura(tramite, parsed.data.canal, actor, parsed.data.versionEsperada);
     if (tramite.estado !== 'pausado' || !tramite.estadoAnterior) {
       throw new ConflictException('Solo se puede retomar un trámite que esté en estado pausado');
     }
@@ -700,6 +1033,7 @@ export class TramitesService implements OnModuleInit {
     tramite.contexto.ultimoCanal = parsed.data.canal;
     tramite.contexto.actualizadoEn = ahora;
 
+    this.incrementarVersion(tramite);
     await this.sincronizarCacheContexto(tramite);
 
     if (canalAnterior !== parsed.data.canal) {
@@ -749,6 +1083,7 @@ export class TramitesService implements OnModuleInit {
     }
 
     const tramite = this.obtenerPorIdOFolio(idOFolio);
+    await this.controlarEscritura(tramite, parsed.data.canal, actor, parsed.data.versionEsperada);
     const chequeo = validarTransicionTramite(
       tramite.estado,
       'cancelado',
@@ -780,6 +1115,8 @@ export class TramitesService implements OnModuleInit {
       completado: true,
     });
 
+    tramite.contexto.propietario = null;
+    this.incrementarVersion(tramite);
     await this.sincronizarCacheContexto(tramite);
 
     await this.eventBus.publish({

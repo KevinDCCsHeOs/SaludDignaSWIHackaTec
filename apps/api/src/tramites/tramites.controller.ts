@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { z } from 'zod';
-import { Auditar } from '../auth/decoradores';
+import { Auditar, Roles } from '../auth/decoradores';
 import type { UsuarioAutenticado } from '../auth/guards';
 import { AccesoPacienteService } from '../otp/acceso-paciente.service';
 import {
@@ -104,5 +104,49 @@ export class TramitesController {
   ) {
     await this.tramiteAutorizado(id, req);
     return this.tramites.cancelar(id, body, this.actor(req));
+  }
+
+  /**
+   * El Call Center toma el trámite al atender la llamada (canal propietario exclusivo, v2):
+   * el bot de WhatsApp deja de escribir y las escrituras de otros canales responden 409.
+   */
+  @Roles('asesor', 'asesor_pro', 'admin')
+  @Auditar({ accion: 'actualizar', entidad: 'Tramite' })
+  @Post('tramites/:id/propietario')
+  async tomarPropietario(
+    @Param('id') id: string,
+    @Body() body: { versionEsperada?: number },
+    @Req() req: RequestAutenticado,
+  ) {
+    await this.tramiteAutorizado(id, req);
+    const versionEsperada =
+      typeof body?.versionEsperada === 'number' ? body.versionEsperada : undefined;
+    return this.tramites.tomarPropietario(id, 'call_center', this.actor(req), versionEsperada);
+  }
+
+  /** Latido de la consola mientras la llamada sigue: renueva el permiso. */
+  @Roles('asesor', 'asesor_pro', 'admin')
+  @Post('tramites/:id/propietario/renovar')
+  async renovarPropietario(@Param('id') id: string, @Req() req: RequestAutenticado) {
+    await this.tramiteAutorizado(id, req);
+    return this.tramites.renovarPropietario(id, this.actor(req));
+  }
+
+  /** Al colgar, el asesor libera el trámite para que cualquier canal lo retome. */
+  @Roles('asesor', 'asesor_pro', 'admin')
+  @Auditar({ accion: 'actualizar', entidad: 'Tramite' })
+  @Delete('tramites/:id/propietario')
+  async liberarPropietario(@Param('id') id: string, @Req() req: RequestAutenticado) {
+    await this.tramiteAutorizado(id, req);
+    return this.tramites.liberarPropietario(id, this.actor(req));
+  }
+
+  /** Plazos activos (producción o exposición) para que la consola muestre los cronómetros. */
+  @Get('plazos')
+  plazos() {
+    return {
+      perfil: process.env.PLAZOS_PERFIL === 'exposicion' ? 'exposicion' : 'produccion',
+      plazos: this.tramites.plazos,
+    };
   }
 }

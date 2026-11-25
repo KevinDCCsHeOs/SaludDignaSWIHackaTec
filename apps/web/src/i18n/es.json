@@ -8,6 +8,10 @@
       "misTramites": "Mis trámites",
       "resultados": "Resultados",
       "consola": "Consola asesor",
+      "journey": "Patient Journey",
+      "admin": "KPIs Admin",
+      "medico": "Vista médica",
+      "revisor": "Revisión técnica",
       "iniciarSesion": "Iniciar sesión",
       "cerrarSesion": "Cerrar sesión"
     }

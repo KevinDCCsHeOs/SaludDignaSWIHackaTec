@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { rutaInicioPorRol } from '../../lib/navegacion-rol';
 import { useAppWeb } from '../../lib/providers';
 
 export default function LoginPage() {
@@ -17,11 +18,7 @@ export default function LoginPage() {
     setCargando(true);
     try {
       const usr = await iniciarSesion(correo, clave);
-      if (usr.rol === 'asesor' || usr.rol === 'asesor_pro') {
-        router.push('/consola');
-      } else {
-        router.push('/');
-      }
+      router.push(rutaInicioPorRol(usr.rol));
     } catch (err) {
       setError(err instanceof Error ? err.message : t.estados.errorGenerico);
     } finally {
@@ -97,6 +94,20 @@ export default function LoginPage() {
             onClick={() => void entrar('admin@demo.saluddigna.local', 'DemoAdmin2026!')}
           >
             {t.login.comoAdmin}
+          </button>
+          <button
+            type="button"
+            className="sd-btn-secondary"
+            onClick={() => void entrar('medico.puebla@demo.saluddigna.local', 'DemoMedico2026!')}
+          >
+            Entrar como Dr. Javier (Médico)
+          </button>
+          <button
+            type="button"
+            className="sd-btn-secondary"
+            onClick={() => void entrar('revisor.lab@demo.saluddigna.local', 'DemoRevisor2026!')}
+          >
+            Entrar como QFB Sofía (Revisor técnico)
           </button>
         </div>
       </section>

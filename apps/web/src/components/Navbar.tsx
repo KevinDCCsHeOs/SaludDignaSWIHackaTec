@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { construirMenuPorRol } from '../lib/navegacion-rol';
 import { useAppWeb } from '../lib/providers';
 
 export function Navbar() {
   const { usuario, locale, t, cerrarSesion, cambiarIdioma } = useAppWeb();
-  const puedeVerConsola =
-    usuario &&
-    (usuario.rol === 'asesor' || usuario.rol === 'asesor_pro' || usuario.rol === 'admin');
+  const menu = construirMenuPorRol(usuario?.rol, usuario?.permisos);
 
   return (
     <header className="sd-header">
@@ -21,11 +20,11 @@ export function Navbar() {
         </Link>
 
         <nav aria-label="Navegación principal" className="sd-nav">
-          <Link href="/">{t.app.nav.inicio}</Link>
-          <Link href="/cotizar">{t.app.nav.cotizar}</Link>
-          <Link href="/mis-tramites">{t.app.nav.misTramites}</Link>
-          <Link href="/resultados">{t.app.nav.resultados}</Link>
-          {puedeVerConsola && <Link href="/consola">{t.app.nav.consola}</Link>}
+          {menu.map((item) => (
+            <Link key={item.href} href={item.href}>
+              {t.app.nav[item.claveNav]}
+            </Link>
+          ))}
         </nav>
 
         <div className="sd-header-actions">

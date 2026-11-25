@@ -354,15 +354,25 @@ export class MaquinaDialogoWhatsapp {
       return sesion;
     }
 
-    // 8. Menú, consultas rápidas y asistente IA reutilizable (#21, #24, #25, #26)
-    if (textoLower === 'opt_estatus' || /\b(estatus|estado|c[oó]mo va)\b/i.test(texto)) {
+    // 8. Menú, consultas rápidas y asistente IA reutilizable (#21, #24, #25, #26, #31)
+    if (
+      textoLower === 'opt_estatus' ||
+      /\b(estatus|estado|c[oó]mo va mi (?:estudio|tr[aá]mite)|c[oó]mo va)\b/i.test(texto)
+    ) {
       const ctx = sesion.pacienteId ? await this.api.obtenerContexto(sesion.pacienteId) : null;
-      await this.meta.enviarTexto(
-        msg.telefono,
-        ctx
-          ? interpolar(i18n.flujo.estatusResumen, { resumen: ctx.resumen })
-          : i18n.flujo.estatusSinTramite,
-      );
+      let resumenFinal = ctx
+        ? interpolar(i18n.flujo.estatusResumen, { resumen: ctx.resumen })
+        : i18n.flujo.estatusSinTramite;
+      if (ctx && this.api.obtenerProcesoDiagnostico) {
+        const proc = await this.api.obtenerProcesoDiagnostico(ctx.folio).catch(() => null);
+        if (proc) {
+          resumenFinal += ` Etapa diagnóstica: ${proc.etiquetaEtapa} (${proc.progresoPct}%).`;
+          if (proc.clinica?.tieneIncidencia && proc.clinica.mensajeEstatus) {
+            resumenFinal += ` Aviso de clínica (${proc.clinica.nombre}): ${proc.clinica.mensajeEstatus}`;
+          }
+        }
+      }
+      await this.meta.enviarTexto(msg.telefono, resumenFinal);
     } else if (textoLower === 'opt_resultados' || /\bresultados?\b/i.test(texto)) {
       await this.meta.enviarTexto(msg.telefono, i18n.flujo.resultadosInfo);
     } else if (textoLower === 'opt_cotizar' || textoLower === 'cotizar') {

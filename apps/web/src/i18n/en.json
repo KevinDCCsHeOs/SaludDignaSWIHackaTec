@@ -8,6 +8,10 @@
       "misTramites": "My processes",
       "resultados": "Results",
       "consola": "Advisor console",
+      "journey": "Patient Journey",
+      "admin": "Admin KPIs",
+      "medico": "Doctor view",
+      "revisor": "Technical review",
       "iniciarSesion": "Sign in",
       "cerrarSesion": "Sign out"
     }

@@ -9,9 +9,12 @@ import { EventosModule } from './eventos/eventos.module';
 import { HealthController } from './health.controller';
 import { IaModule } from './ia/ia.module';
 import { IdentidadModule } from './identidad/identidad.module';
+import { MetricasModule } from './metricas/metricas.module';
 import { OtpModule } from './otp/otp.module';
 import { PrivacidadModule } from './privacidad/privacidad.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { ResultadosModule } from './resultados/resultados.module';
+import { ServicioModule } from './servicio/servicio.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { TramitesModule } from './tramites/tramites.module';
@@ -32,7 +35,10 @@ import { TramitesModule } from './tramites/tramites.module';
     TimelineModule,
     TicketsModule,
     CanalesModule,
+    ResultadosModule,
+    ServicioModule,
     IaModule,
+    MetricasModule,
   ],
   controllers: [HealthController],
 })

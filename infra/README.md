@@ -104,3 +104,20 @@ $C logs -f api whatsapp-bot   # logs en vivo
 
 - **Respaldos diarios de MySQL** con copia fuera de la VPS: issue #36.
 - `mysql/permisos-auditoria.sql` **no** vuelve de solo-inserción la tabla `auditoria`: MySQL no permite revocar a nivel de tabla un permiso que el usuario tiene a nivel de base de datos, y Docker otorga `ALL` sobre `salud_digna.*` a `MYSQL_USER`. Para hacerlo efectivo hace falta un usuario de migraciones separado o *triggers* que bloqueen `UPDATE`/`DELETE` (seguimiento de #11).
+
+## Usuario de despliegue, SSH con llave y despliegue automático (#35)
+
+Se hace **una sola vez**, después de que el sitio ya funciona.
+
+1. En **tu computadora** genera una llave si no tienes una: `ssh-keygen -t ed25519` (en Windows, en PowerShell). Copia el contenido de `~/.ssh/id_ed25519.pub`, la llave **pública**.
+2. En la VPS, como root:
+   ```bash
+   cd /opt/salud-digna && git pull
+   ./infra/scripts/crear-usuario-despliegue.sh "ssh-ed25519 AAAA... tu-correo"
+   ```
+   El script crea el usuario `deploy` (con acceso a Docker y sin contraseña), autoriza tu llave para `deploy` y `root`, y genera una llave exclusiva para GitHub Actions. Esa llave **solo puede ejecutar** `desplegar.sh`, por comando forzado en `authorized_keys`.
+3. Comprueba desde tu computadora que entras sin contraseña: `ssh deploy@<ip>` y `ssh root@<ip>`.
+4. En GitHub → *Settings → Secrets and variables → Actions*, crea `VPS_HOST`, `VPS_USUARIO` (`deploy`) y `VPS_LLAVE_SSH` (salida de `cat /root/llave-despliegue-github`). Luego borra la copia con `shred -u /root/llave-despliegue-github`.
+5. Solo después del paso 3: `./infra/scripts/endurecer-ssh.sh`. Desactiva las contraseñas en SSH; root queda solo con llave.
+
+Desde entonces, cada fusión a `main` se despliega sola (workflow *Despliegue a la VPS*). Ya no hace falta el `git pull` manual.

@@ -11,8 +11,14 @@ export class OtpController {
 
   @Permisos('otp:gestionar')
   @Post('solicitar')
-  solicitar(@Body() body: { pacienteId: string; canal: CanalAtencion }, @Req() req: Request) {
-    return this.otpService.solicitarOtp(body, req.ip ?? '127.0.0.1');
+  solicitar(
+    @Body() body: { pacienteId: string; canal: CanalAtencion },
+    @Req() req: Request & { usuario?: UsuarioAutenticado },
+  ) {
+    // El bot pide el OTP cuando el paciente acaba de escribir (ventana de 24 h abierta);
+    // cualquier otro canal necesita la plantilla de autenticación de Meta.
+    const origen = req.usuario?.rol === 'asesor_ia' ? 'conversacion' : 'externo';
+    return this.otpService.solicitarOtp(body, req.ip ?? '127.0.0.1', origen);
   }
 
   @Permisos('otp:gestionar')

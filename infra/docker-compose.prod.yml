@@ -29,8 +29,8 @@ x-entorno-api: &entorno-api
   LLM_PROVIDER: ${LLM_PROVIDER:-none}
   LLM_API_KEY: ${LLM_API_KEY:-}
   EXPO_PUSH_DESHABILITADO: ${EXPO_PUSH_DESHABILITADO:-0}
-  # Temporizadores del traspaso v2: produccion (10/30 min) o exposicion (30/60 s) para el demo
-  PLAZOS_PERFIL: ${PLAZOS_PERFIL:-produccion}
+  # Temporizadores del traspaso v2: exposicion (30/60 s) para el demo ante el jurado; produccion (10/30 min) después
+  PLAZOS_PERFIL: ${PLAZOS_PERFIL:-exposicion}
   # El API envía el OTP por WhatsApp (#8) y reconoce a Ana con el celular del demo
   WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-}
   WA_PHONE_NUMBER_ID: ${WA_PHONE_NUMBER_ID:-}
@@ -113,7 +113,7 @@ services:
       WA_APP_SECRET: ${WA_APP_SECRET:-}
       WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-}
       WA_PHONE_NUMBER_ID: ${WA_PHONE_NUMBER_ID:-}
-      PLAZOS_PERFIL: ${PLAZOS_PERFIL:-produccion}
+      PLAZOS_PERFIL: ${PLAZOS_PERFIL:-exposicion}
     depends_on:
       api: { condition: service_healthy }
     deploy:

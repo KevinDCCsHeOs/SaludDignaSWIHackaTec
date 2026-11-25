@@ -1,8 +1,9 @@
 import mensajesEn from '../i18n/en.json';
 import mensajesEs from '../i18n/es.json';
+import mensajesNah from '../i18n/nah.json';
 import type { ClienteApiOmnicanal } from '../cloud-api/cliente-api';
 import type { ClienteMetaCloudApi } from '../cloud-api/cliente-meta';
-import type { SesionDialogoWa, SesionWaStore } from '../cloud-api/sesion-store';
+import type { IdiomaBotWa, SesionDialogoWa, SesionWaStore } from '../cloud-api/sesion-store';
 import {
   esIntencionRecuperacionAcceso,
   manejarRecuperacionAccesoWhatsapp,
@@ -15,12 +16,35 @@ export interface MensajeEntranteWa {
   botonId?: string;
 }
 
+const REGEX_URGENCIA_BOT =
+  /\b(dolor\s+(?:fuerte\s+)?(?:en\s+el\s+|de\s+)?pecho|chest\s+pain|no\s+puedo\s+respirar|can'?t\s+breathe|sangrado\s+(?:intenso|abundante)|heavy\s+bleeding|desmayo|fainted|infarto|convulsi[oó]n|hemorragia|call\s+911)\b/i;
+
+const REGEX_NAHUATL_BOT =
+  /\b(niltze|pialli|cualli\s+tonalli|kuali\s+tonali|tlazohcamati|n[aá]huatl|macehualli)\b/i;
+
+const REGEX_INGLES_BOT =
+  /\b(hello|hi\b|how\s+much|quote|schedule|appointment|results?|location|clinic|password|complaint|advisor|human|explain|fasting|please|thanks|chest\s+pain|can'?t\s+breathe)\b/i;
+
+function detectarIdiomaBot(texto: string, actual: IdiomaBotWa): IdiomaBotWa {
+  if (!texto || /^\d+$/.test(texto.trim())) return actual;
+  if (REGEX_NAHUATL_BOT.test(texto)) return 'nah';
+  if (REGEX_INGLES_BOT.test(texto) && !/[¿¡ñáéíóú]/i.test(texto)) return 'en';
+  if (
+    /\b(hola|buenos|buenas|cita|tr[aá]mite|estudio|cl[ií]nica|asesor|gracias|ayuno)\b/i.test(texto)
+  ) {
+    return 'es';
+  }
+  return actual;
+}
+
 function interpolar(plantilla: string, vars: Record<string, string>): string {
   return plantilla.replace(/\{\{(\w+)\}\}/g, (_, k: string) => vars[k] ?? '');
 }
 
-function textosDe(idioma: 'es' | 'en') {
-  return idioma === 'en' ? mensajesEn : mensajesEs;
+function textosDe(idioma: IdiomaBotWa) {
+  if (idioma === 'en') return mensajesEn;
+  if (idioma === 'nah') return mensajesNah;
+  return mensajesEs;
 }
 
 /**
@@ -53,14 +77,45 @@ export class MaquinaDialogoWhatsapp {
       ultimoMensajeEn: ahora,
     };
     sesion.ultimoMensajeEn = ahora;
+    const idiomaDetectado = detectarIdiomaBot(texto, sesion.idioma);
+    const cambioIdioma = idiomaDetectado !== sesion.idioma;
+    sesion.idioma = idiomaDetectado;
+    if (cambioIdioma && sesion.pacienteId && this.api.actualizarIdiomaPaciente) {
+      await this.api
+        .actualizarIdiomaPaciente(sesion.pacienteId, sesion.idioma)
+        .catch(() => undefined);
+    }
 
     const i18n = textosDe(sesion.idioma);
+
+    // 0. Prioridad absoluta: síntomas de alarma -> 911 inmediato sin bloquear por OTP (#25)
+    if (REGEX_URGENCIA_BOT.test(texto)) {
+      let pacienteId = sesion.pacienteId;
+      if (!pacienteId) {
+        const res = await this.api.resolverIdentidad('whatsapp', msg.telefono).catch(() => null);
+        pacienteId = res?.pacienteId ?? 'pac_ana_demo';
+      }
+      const ticket = await this.api.crearTicketEscalamiento({
+        pacienteId,
+        tramiteId: sesion.tramiteId,
+        region: 'Puebla',
+        tipo: 'urgencia',
+        prioridad: 'critica',
+        resumenIa: `URGENCIA detectada en WhatsApp: "${texto.slice(0, 140)}". Se indicó llamar al 911 de inmediato.`,
+      });
+      await this.meta.enviarTexto(
+        msg.telefono,
+        interpolar(i18n.flujo.urgencia911, { folio: ticket.folio }),
+      );
+      this.sesiones.guardar(sesion);
+      return sesion;
+    }
 
     // 1. Comando global "asesor" / "humano" en cualquier momento (#21, #25)
     if (
       textoLower === 'asesor' ||
       textoLower === 'btn_asesor' ||
-      /\b(hablar con asesor|asesor|humano)\b/i.test(texto)
+      /\b(hablar con asesor|asesor|humano|advisor|talk to a human|representative)\b/i.test(texto)
     ) {
       let pacienteId = sesion.pacienteId;
       if (!pacienteId) {
@@ -174,7 +229,9 @@ export class MaquinaDialogoWhatsapp {
         .obtenerPerfilVerificado(sesion.pacienteId)
         .catch(() => ({ nombre: 'Paciente', idioma: 'es' }));
       sesion.nombrePaciente = perfil.nombre;
-      if (perfil.idioma === 'en') sesion.idioma = 'en';
+      if (perfil.idioma === 'en' || perfil.idioma === 'nah') {
+        sesion.idioma = perfil.idioma;
+      }
 
       const ctx = await this.api.obtenerContexto(sesion.pacienteId);
       const t = textosDe(sesion.idioma);
@@ -297,7 +354,7 @@ export class MaquinaDialogoWhatsapp {
       return sesion;
     }
 
-    // 8. Menú y consultas rápidas (estatus, resultados, cotizar)
+    // 8. Menú, consultas rápidas y asistente IA reutilizable (#21, #24, #25, #26)
     if (textoLower === 'opt_estatus' || /\b(estatus|estado|c[oó]mo va)\b/i.test(texto)) {
       const ctx = sesion.pacienteId ? await this.api.obtenerContexto(sesion.pacienteId) : null;
       await this.meta.enviarTexto(
@@ -308,8 +365,30 @@ export class MaquinaDialogoWhatsapp {
       );
     } else if (textoLower === 'opt_resultados' || /\bresultados?\b/i.test(texto)) {
       await this.meta.enviarTexto(msg.telefono, i18n.flujo.resultadosInfo);
-    } else if (textoLower === 'opt_cotizar' || /\bcotizar\b/i.test(texto)) {
+    } else if (textoLower === 'opt_cotizar' || textoLower === 'cotizar') {
       await this.meta.enviarTexto(msg.telefono, i18n.flujo.cotizarGuia);
+    } else if (this.api.consultarAsistenteIa && textoLower !== 'btn_menu') {
+      const iaRes = await this.api
+        .consultarAsistenteIa({
+          mensaje: texto,
+          pacienteId: sesion.pacienteId,
+          sesionId: `wa:${msg.telefono}`,
+          idioma: sesion.idioma,
+          modoSencillo: /f[aá]cil|no entiendo|simple|plain/i.test(texto),
+        })
+        .catch(() => null);
+
+      if (iaRes) {
+        sesion.idioma = iaRes.idioma;
+        await this.meta.enviarTexto(msg.telefono, iaRes.respuesta);
+        if (iaRes.mostrarMenu) {
+          await this.enviarMenuPrincipal(msg.telefono, sesion.idioma);
+        }
+        sesion.paso = 'menu_principal';
+      } else {
+        await this.enviarMenuPrincipal(msg.telefono, sesion.idioma);
+        sesion.paso = 'menu_principal';
+      }
     } else {
       await this.enviarMenuPrincipal(msg.telefono, sesion.idioma);
       sesion.paso = 'menu_principal';
@@ -327,14 +406,15 @@ export class MaquinaDialogoWhatsapp {
     if (!sesion || !this.sesiones.expiroVentana24h(sesion)) {
       return false;
     }
-    await this.meta.enviarPlantilla(telefono, 'sd_tramite_pendiente', sesion.idioma, [
+    const plantillaIdioma = sesion.idioma === 'en' ? 'en' : 'es';
+    await this.meta.enviarPlantilla(telefono, 'sd_tramite_pendiente', plantillaIdioma, [
       sesion.nombrePaciente ?? 'Paciente',
       folio,
     ]);
     return true;
   }
 
-  private ofrecerHorarios(telefono: string, idioma: 'es' | 'en') {
+  private ofrecerHorarios(telefono: string, idioma: IdiomaBotWa) {
     const t = textosDe(idioma);
     return this.meta.enviarBotonesInteractivos(telefono, t.flujo.elegirHorario, [
       { id: 'btn_manana_9', titulo: t.botones.manana9 },
@@ -343,7 +423,7 @@ export class MaquinaDialogoWhatsapp {
     ]);
   }
 
-  private enviarMenuPrincipal(telefono: string, idioma: 'es' | 'en') {
+  private enviarMenuPrincipal(telefono: string, idioma: IdiomaBotWa) {
     const t = textosDe(idioma);
     return this.meta.enviarListaInteractiva(telefono, t.menu.cuerpo, t.menu.botonLista, [
       { id: 'opt_cotizar', titulo: t.menu.opciones.cotizar },

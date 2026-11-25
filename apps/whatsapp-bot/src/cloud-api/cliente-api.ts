@@ -23,6 +23,22 @@ export interface ClinicaApi {
   region: string;
 }
 
+export interface RespuestaIaBotApi {
+  intencion: string;
+  confianza: number;
+  idioma: 'es' | 'en' | 'nah';
+  respuesta: string;
+  mostrarMenu: boolean;
+  guardrailActivado: 'ninguno' | 'no_diagnostico' | 'urgencia_911';
+  escalamiento: {
+    requerido: boolean;
+    motivo: string;
+    prioridad: string;
+    tiempoEsperaMinutos: number;
+    ticketFolio: string | null;
+  } | null;
+}
+
 export interface ClienteApiOmnicanal {
   resolverIdentidad(
     canal: CanalAtencion,
@@ -53,7 +69,17 @@ export interface ClienteApiOmnicanal {
     tramiteId?: string | null;
     region: string;
     resumenIa: string;
+    tipo?: 'duda' | 'queja' | 'urgencia';
+    prioridad?: 'baja' | 'media' | 'alta' | 'critica';
   }): Promise<{ folio: string }>;
+  consultarAsistenteIa?(entrada: {
+    mensaje: string;
+    pacienteId?: string | null;
+    sesionId?: string;
+    idioma?: 'es' | 'en' | 'nah';
+    modoSencillo?: boolean;
+  }): Promise<RespuestaIaBotApi>;
+  actualizarIdiomaPaciente?(pacienteId: string, idioma: 'es' | 'en' | 'nah'): Promise<unknown>;
   registrarInteraccion(entrada: {
     pacienteId: string;
     tramiteId?: string | null;
@@ -179,6 +205,8 @@ export class ClienteHttpApiBot implements ClienteApiOmnicanal {
     tramiteId?: string | null;
     region: string;
     resumenIa: string;
+    tipo?: 'duda' | 'queja' | 'urgencia';
+    prioridad?: 'baja' | 'media' | 'alta' | 'critica';
   }) {
     return this.pedir<{ folio: string }>('/tickets', {
       method: 'POST',
@@ -186,11 +214,38 @@ export class ClienteHttpApiBot implements ClienteApiOmnicanal {
         pacienteId: entrada.pacienteId,
         tramiteId: entrada.tramiteId ?? null,
         canalOrigen: 'whatsapp',
-        tipo: 'duda',
-        prioridad: 'alta',
+        tipo: entrada.tipo ?? 'duda',
+        prioridad: entrada.prioridad ?? 'alta',
         region: entrada.region,
         resumenIa: entrada.resumenIa,
       }),
+    });
+  }
+
+  consultarAsistenteIa(entrada: {
+    mensaje: string;
+    pacienteId?: string | null;
+    sesionId?: string;
+    idioma?: 'es' | 'en' | 'nah';
+    modoSencillo?: boolean;
+  }) {
+    return this.pedir<RespuestaIaBotApi>('/ia/mensaje', {
+      method: 'POST',
+      body: JSON.stringify({
+        mensaje: entrada.mensaje,
+        canal: 'whatsapp',
+        pacienteId: entrada.pacienteId ?? null,
+        sesionId: entrada.sesionId,
+        idioma: entrada.idioma,
+        modoSencillo: entrada.modoSencillo ?? false,
+      }),
+    });
+  }
+
+  actualizarIdiomaPaciente(pacienteId: string, idioma: 'es' | 'en' | 'nah') {
+    return this.pedir(`/identidad/pacientes/${pacienteId}/idioma`, {
+      method: 'PATCH',
+      body: JSON.stringify({ idioma }),
     });
   }
 

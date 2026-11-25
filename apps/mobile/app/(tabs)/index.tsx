@@ -9,6 +9,9 @@ export default function InicioScreen() {
     useMobileSession();
   const activo = tramites.find((tr) => tr.estado !== 'cerrado' && tr.estado !== 'cancelado');
   const [avisoClinica, setAvisoClinica] = useState<string | null>(null);
+  const [alertasActivas, setAlertasActivas] = useState<
+    Array<{ id: string; titulo: string; mensaje: string; region: string; nivel: string }>
+  >([]);
 
   useEffect(() => {
     const clinicaId = activo?.contexto.clinica?.id;
@@ -20,6 +23,11 @@ export default function InicioScreen() {
           : res.incidencias[0];
         setAvisoClinica(inc ? `${inc.nombre}: ${inc.mensaje}` : null);
       })
+      .catch(() => undefined);
+
+    apiMobile
+      .listarAlertasActivas()
+      .then((res) => setAlertasActivas(res.alertas.slice(0, 3)))
       .catch(() => undefined);
   }, [activo?.contexto.clinica?.id]);
 
@@ -132,6 +140,33 @@ export default function InicioScreen() {
           <Pressable onPress={() => void recargarTramites()} style={{ paddingTop: 6 }}>
             <Text style={{ color: paleta.primario, fontSize: 13 * factorFuente }}>Actualizar</Text>
           </Pressable>
+        </View>
+      )}
+
+      {alertasActivas.length > 0 && (
+        <View
+          style={{
+            backgroundColor: paleta.superficie,
+            padding: 16,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: paleta.borde,
+            gap: 8,
+          }}
+        >
+          <Text style={{ color: paleta.primario, fontWeight: '700', fontSize: 15 * factorFuente }}>
+            Alertas preventivas activas
+          </Text>
+          {alertasActivas.map((a) => (
+            <View key={a.id} style={{ gap: 2 }}>
+              <Text style={{ color: paleta.texto, fontWeight: '600', fontSize: 14 * factorFuente }}>
+                [{a.nivel.toUpperCase()} · {a.region}] {a.titulo}
+              </Text>
+              <Text style={{ color: paleta.textoSecundario, fontSize: 13 * factorFuente }}>
+                {a.mensaje}
+              </Text>
+            </View>
+          ))}
         </View>
       )}
     </ScrollView>

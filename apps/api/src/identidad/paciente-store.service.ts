@@ -250,4 +250,24 @@ export class PacienteStoreService {
     paciente.idioma = idioma;
     return paciente;
   }
+
+  listarTodosActivos(): PacienteRegistro[] {
+    return [...this.pacientes.values()].filter((p) => !p.fusionadoEnId);
+  }
+
+  guardarDatosFiscalesCifrados(
+    pacienteId: string,
+    datosJson: string,
+  ): PacienteRegistro | undefined {
+    const paciente = this.buscarPorId(pacienteId);
+    if (!paciente) return undefined;
+    paciente.datosFiscalesCifrados = this.cifrado.cifrar(datosJson);
+    return paciente;
+  }
+
+  obtenerDatosFiscalesDescifrados(pacienteId: string): string | null {
+    const paciente = this.buscarPorId(pacienteId);
+    if (!paciente?.datosFiscalesCifrados) return null;
+    return this.cifrado.descifrar(paciente.datosFiscalesCifrados);
+  }
 }

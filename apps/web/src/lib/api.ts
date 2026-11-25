@@ -624,4 +624,113 @@ export const apiWeb = {
 
   obtenerProcesoDiagnostico: (token: string, folio: string) =>
     pedirApi<ProcesoDiagnosticoDto>(`/tramites/${encodeURIComponent(folio)}/proceso`, { token }),
+
+  listarAlertasActivas: (region?: string) => {
+    const qs = region ? `?region=${encodeURIComponent(region)}` : '';
+    return pedirApi<{
+      total: number;
+      alertas: Array<{
+        id: string;
+        titulo: string;
+        mensaje: string;
+        region: string;
+        nivel: 'informativa' | 'preventiva' | 'urgente';
+        vigenciaHasta: string;
+        destinatariosNotificados: number;
+      }>;
+    }>(`/alertas/activas${qs}`);
+  },
+
+  publicarAlerta: (
+    token: string,
+    body: {
+      titulo: string;
+      mensaje: string;
+      region: string;
+      nivel: 'informativa' | 'preventiva' | 'urgente';
+    },
+  ) =>
+    pedirApi<{
+      alerta: { id: string; titulo: string; destinatariosNotificados: number };
+    }>('/alertas', { method: 'POST', token, body }),
+
+  obtenerDatosFiscales: (token: string, pacienteId: string) =>
+    pedirApi<{
+      guardados: boolean;
+      datosFiscales: {
+        rfc: string;
+        razonSocial: string;
+        regimenFiscal: string;
+        codigoPostal: string;
+        usoCfdi: string;
+      } | null;
+    }>(`/facturacion/pacientes/${encodeURIComponent(pacienteId)}/datos-fiscales`, { token }),
+
+  guardarDatosFiscales: (
+    token: string,
+    pacienteId: string,
+    body: {
+      rfc: string;
+      razonSocial: string;
+      regimenFiscal: string;
+      codigoPostal: string;
+      usoCfdi?: string;
+    },
+  ) =>
+    pedirApi(`/facturacion/pacientes/${encodeURIComponent(pacienteId)}/datos-fiscales`, {
+      method: 'PUT',
+      token,
+      body,
+    }),
+
+  consultarFacturaTramite: (token: string, folio: string) =>
+    pedirApi<{
+      existe: boolean;
+      factura: {
+        id: string;
+        folioFiscalSimulado: string;
+        estatus: string;
+        rfc: string;
+        total: number;
+        reutilizoDatosGuardados: boolean;
+      } | null;
+      pdfUrl: string | null;
+    }>(`/facturacion/tramites/${encodeURIComponent(folio)}`, { token }),
+
+  solicitarFactura: (
+    token: string,
+    body: {
+      tramiteId: string;
+      pacienteId: string;
+      datosFiscales?: {
+        rfc: string;
+        razonSocial: string;
+        regimenFiscal: string;
+        codigoPostal: string;
+        usoCfdi?: string;
+      };
+    },
+  ) =>
+    pedirApi<{
+      factura: {
+        id: string;
+        folioFiscalSimulado: string;
+        estatus: string;
+        rfc: string;
+        total: number;
+      };
+      pdfUrl: string;
+    }>('/facturacion/solicitar', {
+      method: 'POST',
+      token,
+      body: { ...body, canal: 'web' },
+    }),
+
+  descargarFacturaPdfBlob: async (token: string, facturaId: string) => {
+    const res = await fetch(`${API_URL}/facturacion/${encodeURIComponent(facturaId)}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+    return res.blob();
+  },
 };

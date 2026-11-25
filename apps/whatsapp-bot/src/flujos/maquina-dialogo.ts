@@ -354,7 +354,42 @@ export class MaquinaDialogoWhatsapp {
       return sesion;
     }
 
-    // 8. Menú, consultas rápidas y asistente IA reutilizable (#21, #24, #25, #26, #31)
+    // 8. Menú, facturación simulada (#33), consultas rápidas y asistente IA reutilizable (#21, #24, #25, #26, #31)
+    if (/\b(factura|facturar|facturaci[oó]n|invoice)\b/i.test(texto) && sesion.pacienteId) {
+      if (this.api.solicitarFactura) {
+        try {
+          const ctx = await this.api.obtenerContexto(sesion.pacienteId);
+          const tramiteId = sesion.tramiteId ?? ctx?.tramiteId;
+          if (!tramiteId) {
+            await this.meta.enviarTexto(
+              msg.telefono,
+              'No encontramos un trámite activo para facturar en este momento.',
+            );
+          } else {
+            const resFac = await this.api.solicitarFactura({
+              tramiteId,
+              pacienteId: sesion.pacienteId,
+            });
+            const base =
+              this.api.obtenerBaseUrl?.() ?? process.env.API_BASE_URL ?? 'http://localhost:3000';
+            await this.meta.enviarDocumentoPdf(
+              msg.telefono,
+              `${base}${resFac.pdfUrl}`,
+              `factura-${resFac.factura.folioFiscalSimulado}.pdf`,
+              `Factura simulada ${resFac.factura.folioFiscalSimulado} (también disponible para descarga en la App Salud Digna).`,
+            );
+          }
+        } catch {
+          await this.meta.enviarTexto(
+            msg.telefono,
+            'Para emitir tu factura sin repetir datos, guarda tu RFC, régimen fiscal y código postal una sola vez en el portal web o la app.',
+          );
+        }
+        this.sesiones.guardar(sesion);
+        return sesion;
+      }
+    }
+
     if (
       textoLower === 'opt_estatus' ||
       /\b(estatus|estado|c[oó]mo va mi (?:estudio|tr[aá]mite)|c[oó]mo va)\b/i.test(texto)

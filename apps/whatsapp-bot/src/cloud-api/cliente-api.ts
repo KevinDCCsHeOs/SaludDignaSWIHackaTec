@@ -80,6 +80,13 @@ export interface ClienteApiOmnicanal {
     modoSencillo?: boolean;
   }): Promise<RespuestaIaBotApi>;
   actualizarIdiomaPaciente?(pacienteId: string, idioma: 'es' | 'en' | 'nah'): Promise<unknown>;
+  obtenerProcesoDiagnostico?(folio: string): Promise<{
+    folio: string;
+    etiquetaEtapa: string;
+    progresoPct: number;
+    horaEstimadaEntrega: string;
+    clinica: { nombre: string; tieneIncidencia: boolean; mensajeEstatus: string | null } | null;
+  } | null>;
   registrarInteraccion(entrada: {
     pacienteId: string;
     tramiteId?: string | null;
@@ -247,6 +254,20 @@ export class ClienteHttpApiBot implements ClienteApiOmnicanal {
       method: 'PATCH',
       body: JSON.stringify({ idioma }),
     });
+  }
+
+  async obtenerProcesoDiagnostico(folio: string) {
+    try {
+      return await this.pedir<{
+        folio: string;
+        etiquetaEtapa: string;
+        progresoPct: number;
+        horaEstimadaEntrega: string;
+        clinica: { nombre: string; tieneIncidencia: boolean; mensajeEstatus: string | null } | null;
+      }>(`/tramites/${encodeURIComponent(folio)}/proceso`);
+    } catch {
+      return null;
+    }
   }
 
   registrarInteraccion(entrada: {

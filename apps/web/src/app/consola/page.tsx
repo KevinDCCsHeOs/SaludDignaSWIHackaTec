@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TimelinePanel } from '../../components/TimelinePanel';
+import { PanelCrm } from '../../components/consola/PanelCrm';
 import { apiWeb, PacienteResumenDto, TicketDto } from '../../lib/api';
 import { useAppWeb } from '../../lib/providers';
 
@@ -467,9 +468,29 @@ export default function ConsolaAsesorPage() {
                     )}
                   </div>
                 </div>
-              ) : (
+              ) : null}
+              {contexto && pacienteIdActivo && usuario ? (
+                <PanelCrm
+                  token={token}
+                  pacienteId={pacienteIdActivo}
+                  tramiteId={contexto.tramiteId}
+                  folio={contexto.folio}
+                  estado={contexto.estado}
+                  contexto={contexto.contexto}
+                  timeline={timeline?.items ?? []}
+                  usuarioId={usuario.id}
+                  onAviso={(t) => {
+                    setError(null);
+                    setAviso(t);
+                  }}
+                  onError={(t) => {
+                    setAviso(null);
+                    setError(t);
+                  }}
+                />
+              ) : !contexto ? (
                 <p className="sd-muted">Este paciente no tiene un trámite activo todavía.</p>
-              )}
+              ) : null}
             </div>
           </div>
 

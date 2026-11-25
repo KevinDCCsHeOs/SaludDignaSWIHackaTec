@@ -36,7 +36,7 @@ export function MapaClinicas({ clinicas, seleccionadaId, onSeleccionar }: MapaCl
         const esActiva = cli.id === seleccionadaId;
         const marcador = L.circleMarker([cli.lat, cli.lng], {
           radius: esActiva ? 11 : 8,
-          color: esActiva ? '#0b6e4f' : '#1d4ed8',
+          color: esActiva ? '#00804f' : '#1d4ed8',
           fillColor: esActiva ? '#10b981' : '#3b82f6',
           fillOpacity: 0.85,
         }).addTo(mapa);

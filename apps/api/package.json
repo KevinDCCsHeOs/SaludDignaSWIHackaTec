@@ -28,6 +28,7 @@
     "cookie-parser": "^1.4.7",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.21.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.1",
@@ -38,6 +39,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
+    "@types/pdfkit": "^0.17.7",
     "prisma": "^6.19.0",
     "socket.io-client": "^4.8.1",
     "tsx": "^4.19.4"

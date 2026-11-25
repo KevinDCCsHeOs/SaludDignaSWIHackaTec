@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AlertasModule } from './alertas/alertas.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuthModule } from './auth/auth.module';
 import { CanalesModule } from './canales/canales.module';
@@ -6,6 +7,7 @@ import { CatalogosModule } from './catalogos/catalogos.module';
 import { CommonModule } from './common/common.module';
 import { ContextoModule } from './contexto/contexto.module';
 import { EventosModule } from './eventos/eventos.module';
+import { FacturacionModule } from './facturacion/facturacion.module';
 import { HealthController } from './health.controller';
 import { IaModule } from './ia/ia.module';
 import { IdentidadModule } from './identidad/identidad.module';
@@ -39,6 +41,8 @@ import { TramitesModule } from './tramites/tramites.module';
     ServicioModule,
     IaModule,
     MetricasModule,
+    AlertasModule,
+    FacturacionModule,
   ],
   controllers: [HealthController],
 })

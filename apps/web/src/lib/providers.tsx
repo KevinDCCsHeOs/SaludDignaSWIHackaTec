@@ -90,6 +90,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const cambiarIdioma = (nuevo: LocaleWeb) => {
+    setLocale(nuevo);
+    if (token && usuario?.pacienteId) {
+      void apiWeb.actualizarIdiomaPaciente(token, usuario.pacienteId, nuevo).catch(() => undefined);
+    }
+  };
+
   const valor = useMemo<ContextoAppWeb>(
     () => ({
       token,
@@ -99,7 +106,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       ultimoEventoRt,
       iniciarSesion,
       cerrarSesion,
-      cambiarIdioma: setLocale,
+      cambiarIdioma,
     }),
     [token, usuario, locale, ultimoEventoRt],
   );

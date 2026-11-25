@@ -317,4 +317,55 @@ export const apiWeb = {
       canal: 'call_center',
       body: { pacienteId, canal },
     }),
+
+  consultarAsistenteIa: (
+    body: {
+      mensaje: string;
+      pacienteId?: string | null;
+      sesionId?: string;
+      idioma?: 'es' | 'en' | 'nah';
+      modoSencillo?: boolean;
+      region?: string;
+    },
+    token?: string | null,
+  ) =>
+    pedirApi<{
+      intencion: string;
+      confianza: number;
+      idioma: 'es' | 'en' | 'nah';
+      respuesta: string;
+      mostrarMenu: boolean;
+      guardrailActivado: 'ninguno' | 'no_diagnostico' | 'urgencia_911';
+      escalamiento: {
+        requerido: boolean;
+        motivo: string;
+        prioridad: string;
+        tiempoEsperaMinutos: number;
+        ticketFolio: string | null;
+      } | null;
+    }>('/ia/mensaje', {
+      method: 'POST',
+      token,
+      canal: 'web',
+      body: { ...body, canal: 'web' },
+    }),
+
+  obtenerPreparacionSencilla: (estudioId: string, idioma: 'es' | 'en' = 'es') =>
+    pedirApi<{
+      estudioId: string;
+      nombre: string;
+      preparacionClinica: string;
+      preparacionSencilla: string;
+    }>(`/ia/estudios/${encodeURIComponent(estudioId)}/preparacion-sencilla?idioma=${idioma}`),
+
+  actualizarIdiomaPaciente: (token: string, pacienteId: string, idioma: 'es' | 'en' | 'nah') =>
+    pedirApi<{ pacienteId: string; idioma: string }>(
+      `/identidad/pacientes/${encodeURIComponent(pacienteId)}/idioma`,
+      {
+        method: 'PATCH',
+        token,
+        canal: 'web',
+        body: { idioma },
+      },
+    ),
 };

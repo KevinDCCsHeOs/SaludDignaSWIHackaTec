@@ -50,6 +50,8 @@
     "seleccionar": "Select and continue",
     "guardando": "Saving progress...",
     "preparacion": "Preparation",
+    "explicameFacil": "Explain simply",
+    "verOriginal": "Show original text",
     "tituloClinicas": "Choose a clinic",
     "subtituloClinicas": "Selecting a clinic saves your progress automatically so you can resume on WhatsApp.",
     "todasRegiones": "All regions",
@@ -80,6 +82,7 @@
     "bienvenida": "Hi! I can help with quotes, status, preparation, or connect you with an advisor. (Never diagnoses or prescribes).",
     "placeholder": "Ask a question or type \"asesor\"...",
     "enviar": "Send",
+    "modoFacil": "Explain simply",
     "respuestaDefault": "Thanks for reaching out. Use the menu to continue your process, or type \"asesor\" to open a Contact Center ticket.",
     "respuestaUrgencia": "If you have emergency symptoms (chest pain, difficulty breathing, severe bleeding), call 911 immediately."
   },

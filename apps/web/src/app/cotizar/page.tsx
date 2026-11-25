@@ -8,12 +8,30 @@ import { apiWeb, EstudioDto } from '../../lib/api';
 import { useAppWeb } from '../../lib/providers';
 
 export default function CotizarPage() {
-  const { t, token, usuario } = useAppWeb();
+  const { t, locale, token, usuario } = useAppWeb();
   const router = useRouter();
   const [busqueda, setBusqueda] = useState('');
   const [categoria, setCategoria] = useState('');
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [explicacionFacil, setExplicacionFacil] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+
+  const alternarExplicacionFacil = async (estudioId: string) => {
+    if (explicacionFacil[estudioId]) {
+      setExplicacionFacil((prev) => {
+        const next = { ...prev };
+        delete next[estudioId];
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await apiWeb.obtenerPreparacionSencilla(estudioId, locale);
+      setExplicacionFacil((prev) => ({ ...prev, [estudioId]: res.preparacionSencilla }));
+    } catch {
+      // Mantiene preparación clínica si falla la consulta
+    }
+  };
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['estudios', categoria, busqueda],
@@ -107,16 +125,26 @@ export default function CotizarPage() {
               ${est.precio} MXN
             </p>
             <p className="sd-muted">
-              <strong>{t.cotizar.preparacion}:</strong> {est.preparacion}
+              <strong>{t.cotizar.preparacion}:</strong>{' '}
+              {explicacionFacil[est.id] ?? est.preparacion}
             </p>
-            <button
-              type="button"
-              className="sd-btn-primary"
-              disabled={guardandoId === est.id}
-              onClick={() => void seleccionarEstudio(est)}
-            >
-              {guardandoId === est.id ? t.cotizar.guardando : t.cotizar.seleccionar}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="sd-btn-primary"
+                disabled={guardandoId === est.id}
+                onClick={() => void seleccionarEstudio(est)}
+              >
+                {guardandoId === est.id ? t.cotizar.guardando : t.cotizar.seleccionar}
+              </button>
+              <button
+                type="button"
+                className="sd-btn-ghost"
+                onClick={() => void alternarExplicacionFacil(est.id)}
+              >
+                {explicacionFacil[est.id] ? t.cotizar.verOriginal : t.cotizar.explicameFacil}
+              </button>
+            </div>
           </article>
         ))}
       </div>

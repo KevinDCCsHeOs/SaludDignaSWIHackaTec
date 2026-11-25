@@ -1,0 +1,130 @@
+[
+  {
+    "id": "titular",
+    "nombre": "Ana, adulta que gestiona lo suyo",
+    "actor": "Ana",
+    "paciente": "Ana",
+    "vinculo": "Titular · teléfono verificado (V1)",
+    "permisos": {
+      "info": "si",
+      "agendar": "si",
+      "pagar": "si",
+      "resultados": "si",
+      "facturar": "si",
+      "alta": "si",
+      "corregir": "si"
+    }
+  },
+  {
+    "id": "tutor",
+    "nombre": "Ana, tutora de su hijo Leo (8)",
+    "actor": "Ana",
+    "paciente": "Leo",
+    "vinculo": "Tutora de menor · V2 · vence al cumplir 18",
+    "permisos": {
+      "info": "si",
+      "agendar": "si",
+      "pagar": "si",
+      "resultados": "si",
+      "facturar": "si",
+      "alta": "si",
+      "corregir": "si"
+    }
+  },
+  {
+    "id": "cuid",
+    "nombre": "Ana, cuidadora de Don Pedro (78)",
+    "actor": "Ana",
+    "paciente": "Don Pedro",
+    "vinculo": "Cuidadora · V2 · vence en 11 meses · revocable",
+    "permisos": {
+      "info": "si",
+      "agendar": "si",
+      "pagar": "si",
+      "resultados": "si",
+      "facturar": "si",
+      "alta": "si",
+      "corregir": "si"
+    }
+  },
+  {
+    "id": "cony",
+    "nombre": "Raúl, esposo de Ana",
+    "actor": "Raúl",
+    "paciente": "Ana",
+    "vinculo": "Esposo · V1 · autorizado a agendar y pagar, sin resultados",
+    "permisos": {
+      "info": "si",
+      "agendar": "si",
+      "pagar": "si",
+      "resultados": "no",
+      "facturar": "si",
+      "alta": "si",
+      "corregir": "no"
+    }
+  },
+  {
+    "id": "adol",
+    "nombre": "Sofía, adolescente (17) con app propia",
+    "actor": "Sofía",
+    "paciente": "Sofía",
+    "vinculo": "Titular menor de edad · tutora: Ana",
+    "permisos": {
+      "info": "si",
+      "agendar": "si",
+      "pagar": "si",
+      "resultados": "condicionado",
+      "facturar": "si",
+      "alta": "no",
+      "corregir": "condicionado"
+    }
+  },
+  {
+    "id": "comp",
+    "nombre": "Teléfono familiar compartido",
+    "actor": "Número familiar",
+    "paciente": "Leo",
+    "vinculo": "Un número vinculado a 3 personas",
+    "permisos": {
+      "info": "si",
+      "agendar": "si",
+      "pagar": "si",
+      "resultados": "si",
+      "facturar": "si",
+      "alta": "si",
+      "corregir": "si"
+    }
+  },
+  {
+    "id": "med",
+    "nombre": "Dra. Méndez, médica referidora",
+    "actor": "Dra. Méndez",
+    "paciente": "Don Pedro",
+    "vinculo": "Profesional · cédula verificada · doble factor",
+    "permisos": {
+      "info": "si",
+      "agendar": "no",
+      "pagar": "no",
+      "resultados": "condicionado",
+      "facturar": "no",
+      "alta": "no",
+      "corregir": "no"
+    }
+  },
+  {
+    "id": "nuevo",
+    "nombre": "Persona sin registro",
+    "actor": "Persona nueva",
+    "paciente": "Persona nueva",
+    "vinculo": "Sin registro (V0)",
+    "permisos": {
+      "info": "si",
+      "agendar": "tras_registro",
+      "pagar": "tras_registro",
+      "resultados": "tras_registro",
+      "facturar": "tras_registro",
+      "alta": "tras_registro",
+      "corregir": "tras_registro"
+    }
+  }
+]

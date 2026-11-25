@@ -1,0 +1,427 @@
+{
+  "formato": "objeto.accion",
+  "campos_obligatorios": [
+    "id",
+    "tipo",
+    "tramite_id",
+    "persona_paciente_id",
+    "persona_actor_id",
+    "rol_actor",
+    "canal",
+    "ocurrido_en",
+    "version_tramite",
+    "datos",
+    "correlacion_id",
+    "llave_idempotencia"
+  ],
+  "eventos": [
+    {
+      "tipo": "canal.llamada_recibida",
+      "categoria": "canal",
+      "descripcion": "Llamada entrante; el número que llama es una pista, no prueba de identidad.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "canal.mensaje_recibido",
+      "categoria": "canal",
+      "descripcion": "Mensaje entrante de un canal conversacional (WhatsApp, chat web).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "canal.propietario_liberado",
+      "categoria": "canal",
+      "descripcion": "Caducó el permiso de canal propietario (lease) sin renovación; el trámite queda libre para cualquier canal.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "canal.sesion_iniciada",
+      "categoria": "canal",
+      "descripcion": "Inicio de sesión en web o app.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "clinica.llegada",
+      "categoria": "canal",
+      "descripcion": "Llegada del paciente a recepción.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "contexto.transferido",
+      "categoria": "canal",
+      "descripcion": "El trámite cambia de canal propietario (p. ej. WhatsApp → teléfono). El canal anterior deja de escribir.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "consentimiento.otorgado",
+      "categoria": "consentimiento",
+      "descripcion": "Consentimiento registrado con finalidad, alcance, vigencia y canal.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "consentimiento.revocado",
+      "categoria": "consentimiento",
+      "descripcion": "Consentimiento revocado.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "consentimiento.solicitado",
+      "categoria": "consentimiento",
+      "descripcion": "Se pide consentimiento al titular de los datos.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "compromiso.vencido",
+      "categoria": "enrutamiento",
+      "descripcion": "Venció el tiempo máximo para que una persona atienda según la ruta.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "enrutamiento.atendido",
+      "categoria": "enrutamiento",
+      "descripcion": "Una persona toma el caso.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "enrutamiento.escalado",
+      "categoria": "enrutamiento",
+      "descripcion": "Caso escalado a supervisor, médico, especialista o soporte con todo el contexto.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "identidad.codigo_enviado",
+      "categoria": "identidad",
+      "descripcion": "Se envía un código de un solo uso al teléfono verificado.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "identidad.codigo_vencido",
+      "categoria": "identidad",
+      "descripcion": "Venció la validez del código; para ver datos sensibles se pide uno nuevo.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "identidad.conflicto",
+      "categoria": "identidad",
+      "descripcion": "Datos en conflicto entre registros; no se fusiona, se escala a revisión.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "identidad.dato_corregido",
+      "categoria": "identidad",
+      "descripcion": "Corrección de un dato de identidad, validada y con bitácora de rectificación.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "identidad.persona_seleccionada",
+      "categoria": "identidad",
+      "descripcion": "En un teléfono compartido, el usuario elige para quién es el trámite. Nunca se supone.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "identidad.vinculada",
+      "categoria": "identidad",
+      "descripcion": "Identificador de canal vinculado a la persona tras verificar.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "persona.creada",
+      "categoria": "identidad",
+      "descripcion": "Nuevo registro canónico de persona (cada persona tiene su propio ID, incluso un menor).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "relacion.consultada",
+      "categoria": "relacion",
+      "descripcion": "Se consulta el vínculo actor → paciente y su alcance antes de actuar.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "relacion.en_conflicto",
+      "categoria": "relacion",
+      "descripcion": "Vínculo en disputa; se congela el acceso y se escala.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "relacion.revocada",
+      "categoria": "relacion",
+      "descripcion": "El titular revoca el vínculo.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "relacion.solicitada",
+      "categoria": "relacion",
+      "descripcion": "Se solicita crear o ampliar un vínculo; pendiente del dueño de los datos o de evidencia.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "relacion.vencida",
+      "categoria": "relacion",
+      "descripcion": "Vencimiento automático (p. ej. el menor cumple 18).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "relacion.verificada",
+      "categoria": "relacion",
+      "descripcion": "Vínculo verificado (nivel V1 por código, V2 por documento, V3 por instrumento legal).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "llamada.programada",
+      "categoria": "seguimiento",
+      "descripcion": "Llamada de seguimiento asignada a un operador.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "seguimiento.correo_abierto",
+      "categoria": "seguimiento",
+      "descripcion": "El paciente abrió el correo de seguimiento.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "seguimiento.correo_enviado",
+      "categoria": "seguimiento",
+      "descripcion": "Correo de seguimiento con enlace seguro para continuar (no cuenta como actividad del paciente).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "seguimiento.plantilla_enviada",
+      "categoria": "seguimiento",
+      "descripcion": "Plantilla de utilidad de WhatsApp fuera de la ventana de 24 h (con costo).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "acceso.consultado",
+      "categoria": "seguridad",
+      "descripcion": "Bitácora: quién consultó qué dato, cuándo y con qué rol.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "acceso.denegado",
+      "categoria": "seguridad",
+      "descripcion": "Acción denegada por falta de permiso del vínculo o del rol.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "acceso.recuperado",
+      "categoria": "seguridad",
+      "descripcion": "Recuperación de acceso a la cuenta sin perder trámites.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "atencion.no_exitosa",
+      "categoria": "servicio",
+      "descripcion": "Atención no exitosa que requiere nueva toma (INC-O2-01).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "aviso_critico.realizado",
+      "categoria": "servicio",
+      "descripcion": "Registro de quién avisó el valor crítico, a quién y cuándo.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "entrega.reprogramada",
+      "categoria": "servicio",
+      "descripcion": "Nueva fecha por proveedor externo o mensajería (INC-O4-05/06).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "entrega.retrasada",
+      "categoria": "servicio",
+      "descripcion": "Entrega fuera de tiempo por causa interna (INC-O4-02).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "factura.cancelada",
+      "categoria": "servicio",
+      "descripcion": "Factura cancelada (INC-S1-01/02/03).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "factura.emitida",
+      "categoria": "servicio",
+      "descripcion": "Factura emitida con datos fiscales validados.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "fecha_compromiso.calculada",
+      "categoria": "servicio",
+      "descripcion": "Fecha comprometida recalculada (fines de semana, festivos) (INC-O1-07).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "incidente.registrado",
+      "categoria": "servicio",
+      "descripcion": "Emergencia derivada (911/urgencias), sin triaje; trámite pausado.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "muestra.rechazada",
+      "categoria": "servicio",
+      "descripcion": "Muestra rechazada (INC-O1-04/05/06); el trámite regresa a reagendar sin perder el pago.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "orden.cancelada",
+      "categoria": "servicio",
+      "descripcion": "Orden cancelada (INC-O1-01/02/03), con motivo.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "queja.registrada",
+      "categoria": "servicio",
+      "descripcion": "Queja con canal de origen (E10).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "queja.respondida",
+      "categoria": "servicio",
+      "descripcion": "Respuesta y seguimiento de la queja.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "resultado.compartido_con_medico",
+      "categoria": "servicio",
+      "descripcion": "Resultado compartido con el médico referidor con consentimiento.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "resultado.corregido",
+      "categoria": "servicio",
+      "descripcion": "Corrección de un resultado con bitácora y aviso (INC-O4-01/04).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "resultado.enlace_enviado",
+      "categoria": "servicio",
+      "descripcion": "Todos los estudios de la orden liberados: se envía el enlace con acuse.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "resultado.entregado",
+      "categoria": "servicio",
+      "descripcion": "Resultado entregado con acuse.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "resultado.envio_omitido",
+      "categoria": "servicio",
+      "descripcion": "Se detecta un envío sin acuse (INC-O4-03).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "resultado.liberado",
+      "categoria": "servicio",
+      "descripcion": "Un estudio de la orden tiene resultado y se libera.",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "resultado.reenviado",
+      "categoria": "servicio",
+      "descripcion": "Reenvío del resultado al canal registrado con acuse.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "resultado.valor_critico",
+      "categoria": "servicio",
+      "descripcion": "Valor crítico (INC-O4-07): bloquea al bot; interviene una persona.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "sistema.modo_contingencia",
+      "categoria": "servicio",
+      "descripcion": "Captura manual por falla del sistema y sincronización posterior (INC-S3-01).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "sesion.aviso_inactividad",
+      "categoria": "sesion",
+      "descripcion": "Un solo mensaje al vencer el aviso de inactividad; anuncia el cierre y cómo retomar.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "catalogo.consultado",
+      "categoria": "tramite",
+      "descripcion": "Consulta de información pública (sucursales, horarios). Se sirve desde caché.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "cita.apartada",
+      "categoria": "tramite",
+      "descripcion": "Horario apartado con vencimiento.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "cita.confirmada",
+      "categoria": "tramite",
+      "descripcion": "Cita confirmada; visible en todos los canales.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "cotizacion.cargo_extra",
+      "categoria": "tramite",
+      "descripcion": "Cargo adicional mostrado antes de confirmar (INC-O1-10).",
+      "usado_en_simuladores": false
+    },
+    {
+      "tipo": "cotizacion.creada",
+      "categoria": "tramite",
+      "descripcion": "Cotización guardada como borrador; no es orden (lección INC-O1-01).",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "cupo.liberado",
+      "categoria": "tramite",
+      "descripcion": "El horario apartado venció sin confirmar y se liberó.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "notificacion.enviada",
+      "categoria": "tramite",
+      "descripcion": "Aviso saliente (plantilla o mensaje) al último canal activo o al preferido.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "orden.emitida_por_medico",
+      "categoria": "tramite",
+      "descripcion": "Orden electrónica con el ID del médico solicitante.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "pago.conciliado",
+      "categoria": "tramite",
+      "descripcion": "Pago conciliado.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "preparacion.enviada",
+      "categoria": "tramite",
+      "descripcion": "Instrucciones de preparación enviadas en el canal preferido.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "tramite.creado",
+      "categoria": "tramite",
+      "descripcion": "Inicio de un trámite (borrador) con canal de origen.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "tramite.etapa_cambiada",
+      "categoria": "tramite",
+      "descripcion": "Cambio de etapa E01–E10 o de paso del proceso.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "tramite.pausado",
+      "categoria": "tramite",
+      "descripcion": "La conversación se cerró por inactividad; el trámite conserva todo lo capturado.",
+      "usado_en_simuladores": true
+    },
+    {
+      "tipo": "tramite.reanudado",
+      "categoria": "tramite",
+      "descripcion": "El usuario retoma (CONTINUAR, enlace, app, llamada).",
+      "usado_en_simuladores": true
+    }
+  ]
+}

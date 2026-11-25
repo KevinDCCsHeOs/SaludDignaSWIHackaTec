@@ -1,0 +1,150 @@
+{
+  "umbral_alerta_pct": 80,
+  "umbral_critico_pct": 100,
+  "presets": {
+    "regular": {
+      "web": 5000000,
+      "wa": 100000,
+      "app": 30000,
+      "nuc": 30,
+      "cdn": 97,
+      "dep": 0.15,
+      "caida": 5,
+      "holg": 50,
+      "cierre": 30,
+      "lib": 5,
+      "waLim": 1000,
+      "dia": "normal",
+      "tmaS": 7,
+      "tmaC": 5.5,
+      "cap": 200,
+      "camp": 3,
+      "umbral": 80,
+      "inst": 10,
+      "pool": 600,
+      "db": 800,
+      "asT": 600,
+      "asCh": 140,
+      "sesCap": 14000
+    },
+    "limite": {
+      "web": 12500000,
+      "wa": 79000,
+      "app": 60000,
+      "nuc": 30,
+      "cdn": 97,
+      "dep": 0.32,
+      "caida": 5,
+      "holg": 10,
+      "cierre": 100,
+      "lib": 30,
+      "waLim": 80,
+      "dia": "normal",
+      "tmaS": 7,
+      "tmaC": 6.5,
+      "cap": 200,
+      "camp": 3,
+      "umbral": 80,
+      "inst": 10,
+      "pool": 600,
+      "db": 800,
+      "asT": 600,
+      "asCh": 140,
+      "sesCap": 14000
+    },
+    "sobre": {
+      "web": 15000000,
+      "wa": 120000,
+      "app": 80000,
+      "nuc": 35,
+      "cdn": 90,
+      "dep": 1,
+      "caida": 10,
+      "holg": 0,
+      "cierre": 120,
+      "lib": 30,
+      "waLim": 80,
+      "dia": "normal",
+      "tmaS": 7,
+      "tmaC": 7,
+      "cap": 200,
+      "camp": 3,
+      "umbral": 80,
+      "inst": 10,
+      "pool": 600,
+      "db": 800,
+      "asT": 600,
+      "asCh": 140,
+      "sesCap": 14000
+    }
+  },
+  "jerarquia_salud": [
+    {
+      "orden": 1,
+      "elemento": "Seguridad e integridad de los datos",
+      "razon": "Bitácora de accesos, identidades que nunca se fusionan y escrituras confirmadas que no se pierden. Nunca se sacrifica, ni bajo carga.",
+      "recursos": [
+        "sec"
+      ]
+    },
+    {
+      "orden": 2,
+      "elemento": "Núcleo y base de datos de eventos",
+      "razon": "Guardan el estado del trámite y la línea de tiempo. Si caen, se pierde la continuidad entre canales, que es el objetivo del reto.",
+      "recursos": [
+        "nuc",
+        "db"
+      ]
+    },
+    {
+      "orden": 3,
+      "elemento": "Dependencias externas (agenda, SIL, facturación)",
+      "razon": "La causa más común de una caída en cascada: si responden lento, el núcleo se queda sin conexiones aunque no llegue más tráfico.",
+      "recursos": [
+        "dep"
+      ]
+    },
+    {
+      "orden": 4,
+      "elemento": "Canal de WhatsApp",
+      "razon": "El límite de Meta por número no se puede rebasar: los mensajes que sobran se rechazan. Las respuestas a pacientes van antes que los avisos masivos.",
+      "recursos": [
+        "wa"
+      ]
+    },
+    {
+      "orden": 5,
+      "elemento": "Personas: asesores de casos escalados y de chat",
+      "razon": "Capacidad humana en la hora pico. El contexto acumulado y liberar chats inactivos reducen la plantilla necesaria.",
+      "recursos": [
+        "as",
+        "ch"
+      ]
+    },
+    {
+      "orden": 6,
+      "elemento": "Sesiones en memoria",
+      "razon": "Conversaciones abiertas a la vez. Cerrar la conversación, no el trámite, mantiene el consumo acotado.",
+      "recursos": [
+        "ses"
+      ]
+    },
+    {
+      "orden": 7,
+      "elemento": "Contenido público (catálogo, precios, sucursales)",
+      "razon": "Lo primero que se degrada o se sirve desde caché. Nunca debe llegar al núcleo.",
+      "recursos": [
+        "cdn"
+      ]
+    }
+  ],
+  "recursos": [
+    "nuc: núcleo (API) sol/s",
+    "wa: WhatsApp msj/s por número",
+    "dep: conexiones a agenda/SIL en espera (ley de Little)",
+    "db: eventos/s de la base",
+    "as: asesores para casos escalados (Erlang C 80/20)",
+    "ch: asesores de chat (3 chats c/u)",
+    "ses: sesiones de WhatsApp en memoria"
+  ]
+}

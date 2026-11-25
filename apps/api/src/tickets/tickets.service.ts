@@ -59,6 +59,10 @@ export const CrearTicketSchema = z.object({
   resumenIa: z.string().max(1000).optional(),
   asignarAutomaticamente: z.boolean().default(true),
   esDemo: z.boolean().default(true),
+  /** Compromiso de la ruta por riesgo, en minutos; reemplaza el SLA por prioridad (v2). */
+  slaMinutos: z.number().int().positive().max(10_080).optional(),
+  /** Ruta y motivos de la decisión por riesgo (v2). */
+  motivoEscalamiento: z.string().min(1).max(255).optional(),
 });
 
 export const EscalarTicketSchema = z.object({
@@ -254,7 +258,7 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
 
     const data = parsed.data;
     const prioridad = data.prioridad ?? this.calcularPrioridadPorDefecto(data.tipo);
-    const slaMinutos = SLA_MINUTOS_POR_PRIORIDAD[prioridad];
+    const slaMinutos = data.slaMinutos ?? SLA_MINUTOS_POR_PRIORIDAD[prioridad];
     const ahora = new Date();
     const slaVenceEn = new Date(ahora.getTime() + slaMinutos * 60_000).toISOString();
 
@@ -275,7 +279,7 @@ export class TicketsService implements OnModuleInit, OnModuleDestroy {
       region: data.region,
       asignadoAId,
       resumenIa: data.resumenIa ?? null,
-      motivoEscalamiento: null,
+      motivoEscalamiento: data.motivoEscalamiento ?? null,
       slaVenceEn,
       slaVencido: false,
       resolucion: null,

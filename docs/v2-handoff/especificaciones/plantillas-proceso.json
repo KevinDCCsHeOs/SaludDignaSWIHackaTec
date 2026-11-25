@@ -1,0 +1,102 @@
+[
+  {
+    "id": "ag",
+    "proceso": "Agendar estudio",
+    "tipo": "Solicitud",
+    "incidencia": null,
+    "pasos": [
+      "Cotizar",
+      "Identificarse",
+      "Elegir horario",
+      "Pagar",
+      "Confirmación"
+    ]
+  },
+  {
+    "id": "res",
+    "proceso": "Resultados de una orden",
+    "tipo": "Solicitud",
+    "incidencia": null,
+    "pasos": [
+      "Toma de muestras",
+      "Estudio 1",
+      "Estudio 2",
+      "Estudio 3",
+      "Enlace de resultados"
+    ]
+  },
+  {
+    "id": "mue",
+    "proceso": "Muestra rechazada",
+    "tipo": "Salida no conforme",
+    "incidencia": "INC-O1-06",
+    "pasos": [
+      "Aviso de rechazo",
+      "Reagendar",
+      "Preparación confirmada",
+      "Nueva toma",
+      "Resultados"
+    ]
+  },
+  {
+    "id": "fac",
+    "proceso": "Factura con régimen equivocado",
+    "tipo": "Salida no conforme",
+    "incidencia": "INC-S1-02",
+    "pasos": [
+      "Solicitud",
+      "Datos fiscales",
+      "Corrección",
+      "Factura emitida"
+    ]
+  },
+  {
+    "id": "alta",
+    "proceso": "Alta como tutor o cuidador",
+    "tipo": "Solicitud",
+    "incidencia": null,
+    "pasos": [
+      "Registro del familiar",
+      "Código",
+      "Consentimiento o documento",
+      "Vínculo verificado"
+    ]
+  },
+  {
+    "id": "ree",
+    "proceso": "Reenvío de resultados",
+    "tipo": "Solicitud",
+    "incidencia": null,
+    "pasos": [
+      "Solicitud",
+      "Identificar persona",
+      "Código",
+      "Envío con acuse"
+    ]
+  },
+  {
+    "id": "ret",
+    "proceso": "Resultado retrasado",
+    "tipo": "Salida no conforme",
+    "incidencia": "INC-O4-05",
+    "pasos": [
+      "Aviso de retraso",
+      "Nueva fecha",
+      "Resultado liberado",
+      "Enlace enviado"
+    ]
+  },
+  {
+    "id": "ord",
+    "proceso": "Orden de médico referidor",
+    "tipo": "Solicitud",
+    "incidencia": null,
+    "pasos": [
+      "Orden emitida",
+      "Invitación enviada",
+      "Agendar",
+      "Pagar",
+      "Atención"
+    ]
+  }
+]

@@ -13,6 +13,7 @@ interface ContextoAppWeb {
   locale: LocaleWeb;
   t: DiccionarioWeb;
   ultimoEventoRt: Record<string, unknown> | null;
+  suscribirPacienteRt: (pacienteId: string) => void;
   iniciarSesion: (email: string, contrasena: string) => Promise<UsuarioSesion>;
   cerrarSesion: () => void;
   cambiarIdioma: (nuevo: LocaleWeb) => void;
@@ -32,6 +33,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [locale, setLocale] = useState<LocaleWeb>('es');
   const [ultimoEventoRt, setUltimoEventoRt] = useState<Record<string, unknown> | null>(null);
+  const [socketActivo, setSocketActivo] = useState<Socket | null>(null);
+
+  const guardarCookieRol = (rol: string | null) => {
+    try {
+      if (rol) {
+        document.cookie = `sd_web_rol=${encodeURIComponent(rol)}; Path=/; SameSite=Lax`;
+      } else {
+        document.cookie = 'sd_web_rol=; Path=/; Max-Age=0; SameSite=Lax';
+      }
+    } catch {
+      // No-op en entornos sin document.cookie
+    }
+  };
 
   useEffect(() => {
     try {
@@ -40,6 +54,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(guardado) as { token: string; usuario: UsuarioSesion };
         setToken(parsed.token);
         setUsuario(parsed.usuario);
+        guardarCookieRol(parsed.usuario.rol);
       }
     } catch {
       // Ignorar si sessionStorage no está disponible
@@ -47,28 +62,44 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setSocketActivo(null);
+      return;
+    }
     const cfg = crearConfigSocketCliente(WS_URL, token);
     const socket: Socket = io(cfg.url, {
       ...cfg.options,
       transports: ['websocket', 'polling'],
     });
+    setSocketActivo(socket);
     socket.on('evento:omnicanal', (evento: Record<string, unknown>) => {
       setUltimoEventoRt(evento);
       void queryClient.invalidateQueries({ queryKey: ['timeline'] });
       void queryClient.invalidateQueries({ queryKey: ['tramites'] });
       void queryClient.invalidateQueries({ queryKey: ['tickets'] });
       void queryClient.invalidateQueries({ queryKey: ['contexto'] });
+      void queryClient.invalidateQueries({ queryKey: ['journey'] });
+      void queryClient.invalidateQueries({ queryKey: ['metricas'] });
+      void queryClient.invalidateQueries({ queryKey: ['resultados'] });
+      void queryClient.invalidateQueries({ queryKey: ['estadisticas'] });
     });
     return () => {
       socket.disconnect();
+      setSocketActivo(null);
     };
   }, [token, queryClient]);
+
+  const suscribirPacienteRt = (pacienteId: string) => {
+    if (socketActivo && pacienteId) {
+      socketActivo.emit('suscribir:paciente', pacienteId);
+    }
+  };
 
   const iniciarSesion = async (email: string, contrasena: string) => {
     const res = await apiWeb.login(email, contrasena);
     setToken(res.accessToken);
     setUsuario(res.usuario);
+    guardarCookieRol(res.usuario.rol);
     try {
       window.sessionStorage.setItem(
         CLAVE_STORAGE,
@@ -83,6 +114,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const cerrarSesion = () => {
     setToken(null);
     setUsuario(null);
+    guardarCookieRol(null);
     try {
       window.sessionStorage.removeItem(CLAVE_STORAGE);
     } catch {
@@ -104,11 +136,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       locale,
       t: obtenerDiccionario(locale),
       ultimoEventoRt,
+      suscribirPacienteRt,
       iniciarSesion,
       cerrarSesion,
       cambiarIdioma,
     }),
-    [token, usuario, locale, ultimoEventoRt],
+    [token, usuario, locale, ultimoEventoRt, socketActivo],
   );
 
   return (

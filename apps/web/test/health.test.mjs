@@ -26,6 +26,13 @@ test('Issues #18 y #19: i18n es/en completo y páginas Next.js App Router presen
     'src/app/mis-tramites/[folio]/page.tsx',
     'src/app/resultados/page.tsx',
     'src/app/consola/page.tsx',
+    'src/app/journey/page.tsx',
+    'src/app/journey/[pacienteId]/page.tsx',
+    'src/app/admin/page.tsx',
+    'src/app/medico/page.tsx',
+    'src/app/revisor/page.tsx',
+    'src/app/403/page.tsx',
+    'src/middleware.ts',
     'src/app/api/health/route.ts',
   ];
 

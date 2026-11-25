@@ -106,6 +106,119 @@ export interface PacienteResumenDto {
   folioCoincidente?: string;
 }
 
+export interface ResultadoClinicoDto {
+  id: string;
+  tramiteId: string;
+  folioTramite: string;
+  pacienteId: string;
+  estudioId: string;
+  estudioNombre: string;
+  estado: 'captura' | 'revision_tecnica' | 'validacion_medica' | 'liberado' | 'rechazado';
+  resumenClinico: string;
+  valores: Array<{ parametro: string; valor: string; referencia: string }>;
+  revisadoPorId: string | null;
+  revisadoEn: string | null;
+  validadoPorId: string | null;
+  validadoEn: string | null;
+  liberadoEn: string | null;
+  motivoRechazo: string | null;
+  pdfGenerado: boolean;
+  actualizadoEn: string;
+}
+
+export interface MensajeMedicoDto {
+  id: string;
+  resultadoId: string;
+  emisorRol: RolUsuario;
+  emisorNombre: string;
+  contenido: string;
+  tiempoEsperadoRespuestaMinutos: number;
+  creadoEn: string;
+}
+
+export interface ResumenJourneyDto {
+  pacienteId: string;
+  nombre: string;
+  region: string | null;
+  folio: string | null;
+  tramiteId: string | null;
+  estadoActual: string;
+  pasoActual: string;
+  ultimoCanal: CanalAtencion;
+  canalesRecorridos: Array<{
+    canal: CanalAtencion;
+    hora: string;
+    accion: string;
+    cambioDeCanal: boolean;
+  }>;
+  contexto: {
+    estudio: string | null;
+    clinica: string | null;
+    fechaTentativa: string | null;
+    pendientes: string[];
+  };
+  actualizadoEn: string;
+}
+
+export interface ProcesoDiagnosticoDto {
+  tramiteId: string;
+  folio: string;
+  pacienteId: string;
+  estudioNombre: string | null;
+  etapaDiagnostica: 'pendiente_toma' | 'muestra_tomada' | 'en_analisis' | 'en_validacion' | 'listo';
+  etiquetaEtapa: string;
+  progresoPct: number;
+  horaEstimadaEntrega: string;
+  clinica: {
+    id: string;
+    nombre: string;
+    region: string;
+    estatus: 'operando' | 'retraso' | 'fuera_de_servicio';
+    mensajeEstatus: string | null;
+    tieneIncidencia: boolean;
+  } | null;
+}
+
+export interface MetricasAdminDto {
+  generadoEn: string;
+  filtros: { desde: string | null; hasta: string | null; region: string };
+  kpis: {
+    tramitesTotales: number;
+    tramitesRetomadosOtroCanal: number;
+    tramitesRetomadosOtroCanalPct: number;
+    cambiosDeCanalTotal: number;
+    tiempoPromedioAtencionMinutos: number;
+    tiempoPromedioPrimeraRespuestaMinutos: number;
+    resolucionPrimerContactoPct: number;
+    ticketsAbiertos: number;
+    ticketsTotales: number;
+    eventosRegistrados: number;
+  };
+  ticketsPorRegion: Array<{
+    region: string;
+    abiertos: number;
+    enAtencion: number;
+    escalados: number;
+    cerrados: number;
+    total: number;
+  }>;
+  ticketsPorPrioridad: Array<{ prioridad: string; total: number }>;
+  interaccionesPorCanal: Array<{ canal: CanalAtencion; total: number }>;
+  estatusClinicas: { operando: number; retraso: number; fuera_de_servicio: number };
+  incidenciasClinicas: Array<{
+    clinicaId: string;
+    nombre: string;
+    region: string;
+    estatus: 'operando' | 'retraso' | 'fuera_de_servicio';
+    mensaje: string;
+  }>;
+}
+
+export interface EstadisticasRolDto {
+  rol: RolUsuario;
+  tarjetas: Array<{ clave: string; etiqueta: string; valor: number | string }>;
+}
+
 async function pedirApi<T>(
   ruta: string,
   opciones: { method?: string; token?: string | null; body?: unknown; canal?: CanalAtencion } = {},
@@ -368,4 +481,147 @@ export const apiWeb = {
         body: { idioma },
       },
     ),
+
+  listarJourneyPacientes: (
+    token: string,
+    filtros?: { region?: string; estado?: string; canal?: string; q?: string },
+  ) => {
+    const p = new URLSearchParams();
+    if (filtros?.region) p.set('region', filtros.region);
+    if (filtros?.estado) p.set('estado', filtros.estado);
+    if (filtros?.canal) p.set('canal', filtros.canal);
+    if (filtros?.q) p.set('q', filtros.q);
+    const qs = p.toString() ? `?${p.toString()}` : '';
+    return pedirApi<{ total: number; pacientes: ResumenJourneyDto[] }>(`/journey/pacientes${qs}`, {
+      token,
+    });
+  },
+
+  obtenerJourneyPaciente: (token: string, pacienteId: string) =>
+    pedirApi<
+      ResumenJourneyDto & {
+        procesoDiagnostico: ProcesoDiagnosticoDto | null;
+        timeline: EntradaTimelineDto[];
+      }
+    >(`/journey/pacientes/${encodeURIComponent(pacienteId)}`, { token }),
+
+  obtenerMetricasAdmin: (
+    token: string,
+    filtros?: { desde?: string; hasta?: string; region?: string },
+  ) => {
+    const p = new URLSearchParams();
+    if (filtros?.desde) p.set('desde', filtros.desde);
+    if (filtros?.hasta) p.set('hasta', filtros.hasta);
+    if (filtros?.region) p.set('region', filtros.region);
+    const qs = p.toString() ? `?${p.toString()}` : '';
+    return pedirApi<MetricasAdminDto>(`/admin/metricas${qs}`, { token });
+  },
+
+  exportarMetricasCsv: async (
+    token: string,
+    filtros?: { desde?: string; hasta?: string; region?: string },
+  ) => {
+    const p = new URLSearchParams();
+    if (filtros?.desde) p.set('desde', filtros.desde);
+    if (filtros?.hasta) p.set('hasta', filtros.hasta);
+    if (filtros?.region) p.set('region', filtros.region);
+    const qs = p.toString() ? `?${p.toString()}` : '';
+    const res = await fetch(`${API_URL}/admin/metricas/export.csv${qs}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+    return res.text();
+  },
+
+  obtenerEstadisticasMiRol: (token: string) =>
+    pedirApi<EstadisticasRolDto>('/estadisticas/mi-rol', { token }),
+
+  listarResultados: (token: string, estado?: string) => {
+    const qs = estado ? `?estado=${encodeURIComponent(estado)}` : '';
+    return pedirApi<{ total: number; resultados: ResultadoClinicoDto[] }>(`/resultados${qs}`, {
+      token,
+    });
+  },
+
+  revisarResultado: (
+    token: string,
+    id: string,
+    body: { aprobado: boolean; motivoRechazo?: string },
+  ) =>
+    pedirApi<ResultadoClinicoDto>(`/resultados/${encodeURIComponent(id)}/revisar`, {
+      method: 'POST',
+      token,
+      body,
+    }),
+
+  validarResultado: (
+    token: string,
+    id: string,
+    body: { aprobado: boolean; motivoRechazo?: string },
+  ) =>
+    pedirApi<ResultadoClinicoDto>(`/resultados/${encodeURIComponent(id)}/validar`, {
+      method: 'POST',
+      token,
+      body,
+    }),
+
+  liberarResultado: (token: string, id: string) =>
+    pedirApi<{ resultado: ResultadoClinicoDto; canalNotificacion: string; pdfUrl: string }>(
+      `/resultados/${encodeURIComponent(id)}/liberar`,
+      { method: 'POST', token },
+    ),
+
+  descargarResultadoPdfBlob: async (token: string, id: string) => {
+    const res = await fetch(`${API_URL}/resultados/${encodeURIComponent(id)}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+    return res.blob();
+  },
+
+  listarMensajesResultado: (token: string, id: string) =>
+    pedirApi<{
+      resultadoId: string;
+      tiempoEsperadoRespuestaMinutos: number;
+      mensajes: MensajeMedicoDto[];
+    }>(`/resultados/${encodeURIComponent(id)}/mensajes`, { token }),
+
+  enviarMensajeResultado: (token: string, id: string, contenido: string, urgente = false) =>
+    pedirApi<MensajeMedicoDto>(`/resultados/${encodeURIComponent(id)}/mensajes`, {
+      method: 'POST',
+      token,
+      body: { contenido, urgente },
+    }),
+
+  obtenerEstatusServicio: (region?: string) => {
+    const qs = region ? `?region=${encodeURIComponent(region)}` : '';
+    return pedirApi<{
+      region: string;
+      actualizadoEn: string;
+      resumen: { operando: number; retraso: number; fuera_de_servicio: number };
+      incidencias: Array<{
+        clinicaId: string;
+        nombre: string;
+        region: string;
+        estatus: 'operando' | 'retraso' | 'fuera_de_servicio';
+        mensaje: string;
+      }>;
+      clinicas: ClinicaDto[];
+    }>(`/servicio/estatus${qs}`);
+  },
+
+  actualizarEstatusClinica: (
+    token: string,
+    clinicaId: string,
+    estatus: 'operando' | 'retraso' | 'fuera_de_servicio',
+    mensajeEstatus: string | null,
+  ) =>
+    pedirApi<ClinicaDto>(`/servicio/clinicas/${encodeURIComponent(clinicaId)}/estatus`, {
+      method: 'PATCH',
+      token,
+      body: { estatus, mensajeEstatus },
+    }),
+
+  obtenerProcesoDiagnostico: (token: string, folio: string) =>
+    pedirApi<ProcesoDiagnosticoDto>(`/tramites/${encodeURIComponent(folio)}/proceso`, { token }),
 };

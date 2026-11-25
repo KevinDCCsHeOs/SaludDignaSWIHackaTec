@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { BannerServicioClinica } from '../components/BannerServicioClinica';
+import { EstadisticasRolWidget } from '../components/EstadisticasRolWidget';
 import { apiWeb } from '../lib/api';
 import { useAppWeb } from '../lib/providers';
 
@@ -17,6 +19,11 @@ export default function InicioPage() {
 
   return (
     <div>
+      <BannerServicioClinica
+        clinicaId={contextoActivo?.contexto.clinica?.id}
+        region={usuario?.region}
+      />
+
       {contextoActivo && (
         <section className="sd-banner-pendiente" role="status" aria-live="polite">
           <div>
@@ -58,6 +65,8 @@ export default function InicioPage() {
             )}
         </div>
       </section>
+
+      <EstadisticasRolWidget />
 
       <section className="sd-grid" aria-label="Pilares de la plataforma">
         {t.inicio.pilares.map((pilar, idx) => (

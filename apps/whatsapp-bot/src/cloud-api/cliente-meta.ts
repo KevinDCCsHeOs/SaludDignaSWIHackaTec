@@ -12,7 +12,7 @@ export interface FilaListaWa {
 export interface MensajeSalienteWa {
   id: string;
   para: string;
-  tipo: 'text' | 'interactive_buttons' | 'interactive_list' | 'location' | 'template';
+  tipo: 'text' | 'interactive_buttons' | 'interactive_list' | 'location' | 'template' | 'document';
   payload: Record<string, unknown>;
   enviadoEn: string;
   simulado: boolean;
@@ -219,6 +219,23 @@ export class ClienteMetaCloudApi {
                 },
               ]
             : [],
+      },
+    });
+  }
+
+  /** Envío de documento PDF (ej. factura simulada, #33). */
+  enviarDocumentoPdf(
+    para: string,
+    enlacePdf: string,
+    nombreArchivo: string,
+    leyenda?: string,
+  ): Promise<MensajeSalienteWa> {
+    return this.despachar(para, 'document', {
+      type: 'document',
+      document: {
+        link: enlacePdf,
+        filename: nombreArchivo,
+        ...(leyenda ? { caption: leyenda } : {}),
       },
     });
   }

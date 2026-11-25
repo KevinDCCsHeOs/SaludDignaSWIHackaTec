@@ -102,3 +102,64 @@ test('Issues #24, #25 y #26 (bot WhatsApp): urgencia 911 sin bloqueo OTP, inglé
   assert.equal(sesNah.idioma, 'nah');
   assert.match(JSON.stringify(meta.obtenerHistorial().at(-1).payload), /Niltze/i);
 });
+
+test('Issue #33 (bot WhatsApp): el paciente solicita su factura y recibe el PDF por documento de WhatsApp', async () => {
+  const apiMock = {
+    resolverIdentidad: async () => ({ estado: 'conocido', pacienteId: 'pac_ana_demo' }),
+    solicitarOtp: async () => ({ enviado: true }),
+    verificarOtp: async () => ({ verificado: true }),
+    vincularIdentidad: async () => ({ ok: true }),
+    obtenerPerfilVerificado: async () => ({ nombre: 'Ana', idioma: 'es' }),
+    obtenerContexto: async () => ({
+      tramiteId: 'trm_01',
+      folio: 'SD-2026-000001',
+      contexto: {
+        estudio: { nombre: 'Ultrasonido abdominal' },
+        clinica: { id: 'cli_09', nombre: 'Puebla Centro' },
+      },
+      resumen: 'Ultrasonido abdominal en Puebla Centro',
+    }),
+    retomarTramite: async () => ({}),
+    agendarCita: async () => ({ folio: 'SD-2026-000001' }),
+    obtenerClinica: async () => null,
+    crearTicketEscalamiento: async () => ({ folio: 'TK-2026-000001' }),
+    registrarInteraccion: async () => ({ ok: true }),
+    actualizarEstadoEntrega: async () => ({ ok: true }),
+    solicitarEnlaceRecuperacion: async () => ({ enviado: true }),
+    solicitarFactura: async () => ({
+      factura: {
+        id: 'fac_demo_01',
+        folioFiscalSimulado: 'FAC-DEMO-2026-ABC123',
+        estatus: 'emitida',
+        reutilizoDatosGuardados: true,
+      },
+      pdfUrl: '/facturacion/fac_demo_01/pdf',
+    }),
+    obtenerBaseUrl: () => 'https://api.saluddigna.demo',
+  };
+
+  const meta = new ClienteMetaCloudApi();
+  const sesiones = new SesionWaStore();
+  sesiones.guardar({
+    telefono: '+522221234567',
+    pacienteId: 'pac_ana_demo',
+    nombrePaciente: 'Ana',
+    tramiteId: 'trm_01',
+    clinicaId: 'cli_09',
+    paso: 'menu_principal',
+    pasoInterrumpido: null,
+    idioma: 'es',
+    ultimoMensajeEn: new Date().toISOString(),
+  });
+
+  const dialogo = new MaquinaDialogoWhatsapp(apiMock, meta, sesiones);
+  await dialogo.procesarMensajeEntrante({
+    messageId: 'wamid.fac.1',
+    telefono: '+522221234567',
+    texto: 'Quiero mi factura por favor',
+  });
+
+  const ultimo = meta.obtenerHistorial().at(-1);
+  assert.equal(ultimo.tipo, 'document');
+  assert.match(JSON.stringify(ultimo.payload), /FAC-DEMO-2026-ABC123/);
+});

@@ -87,6 +87,16 @@ export interface ClienteApiOmnicanal {
     horaEstimadaEntrega: string;
     clinica: { nombre: string; tieneIncidencia: boolean; mensajeEstatus: string | null } | null;
   } | null>;
+  solicitarFactura?(entrada: { tramiteId: string; pacienteId: string }): Promise<{
+    factura: {
+      id: string;
+      folioFiscalSimulado: string;
+      estatus: string;
+      reutilizoDatosGuardados: boolean;
+    };
+    pdfUrl: string;
+  }>;
+  obtenerBaseUrl?(): string;
   registrarInteraccion(entrada: {
     pacienteId: string;
     tramiteId?: string | null;
@@ -268,6 +278,29 @@ export class ClienteHttpApiBot implements ClienteApiOmnicanal {
     } catch {
       return null;
     }
+  }
+
+  solicitarFactura(entrada: { tramiteId: string; pacienteId: string }) {
+    return this.pedir<{
+      factura: {
+        id: string;
+        folioFiscalSimulado: string;
+        estatus: string;
+        reutilizoDatosGuardados: boolean;
+      };
+      pdfUrl: string;
+    }>('/facturacion/solicitar', {
+      method: 'POST',
+      body: JSON.stringify({
+        tramiteId: entrada.tramiteId,
+        pacienteId: entrada.pacienteId,
+        canal: 'whatsapp',
+      }),
+    });
+  }
+
+  obtenerBaseUrl(): string {
+    return this.baseUrl;
   }
 
   registrarInteraccion(entrada: {

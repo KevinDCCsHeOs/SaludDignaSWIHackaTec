@@ -1,0 +1,54 @@
+sequenceDiagram
+  autonumber
+  actor Ana as Ana (Web / WhatsApp)
+  participant Web as Portal Web (Next.js)
+  participant Bot as WhatsApp Bot (Cloud API)
+  participant API as Núcleo API (NestJS)
+  participant Redis as Redis 7 (OTP / ctx / Streams)
+  participant DB as MySQL 8 (Prisma)
+  participant RT as Socket.IO (/journey)
+
+  Note over Ana,Web: Etapa 1 — Inicio en Portal Web y cierre abrupto
+  Ana->>Web: Selecciona "Ultrasonido abdominal"
+  Web->>API: POST /tramites (JWT paciente, canal=web)
+  API->>DB: INSERT tramites (estado=cotizacion) + eventos (outbox)
+  API->>Redis: SET ctx:pac_ana_demo (TTL 24h) + XADD eventos
+  API-->>RT: evento:omnicanal (cotizacion.iniciada)
+
+  Ana->>Web: Elige clínica "Puebla Centro"
+  Web->>API: PATCH /tramites/:id/contexto (autoguardado)
+  API->>DB: UPDATE tramites (estado=seleccion_clinica, contexto JSON)
+  API->>Redis: SET ctx:pac_ana_demo + XADD eventos (clinica.seleccionada)
+  API-->>RT: evento:omnicanal (clinica.seleccionada)
+  Note over Ana,Web: Ana cierra la pestaña antes de confirmar cita
+
+  Note over Ana,Bot: Etapa 2 — Horas después en WhatsApp (Verificar antes de revelar)
+  Ana->>Bot: "Hola" (webhook Meta firmado X-Hub-Signature-256)
+  Bot-->>Ana: HTTP 200 OK inmediato + encolado (dedup por message.id)
+  Bot->>API: POST /identidad/resolver (x-service-token, canal=whatsapp)
+  API->>DB: Buscar identidades_canal y pacientes.telefono_e164 (+52...)
+  API-->>Bot: { estado: "requiere_verificacion", pacienteId: "pac_ana_demo" }
+
+  Bot->>API: POST /otp/solicitar (pacienteId, canal=whatsapp)
+  API->>Redis: SET otp:pac_ana_demo (SHA-256 hash, TTL 5 min)
+  API-->>Ana: Envía código OTP de 6 dígitos por WhatsApp
+
+  Ana->>Bot: "482913"
+  Bot->>API: POST /otp/verificar (pacienteId, canal=whatsapp, codigo)
+  API->>Redis: Compara hash + SET otp:verificado:pac_ana_demo:whatsapp (TTL 30 min)
+  API->>DB: INSERT auditoria (verificar_otp) + eventos (identidad.verificada)
+  API-->>Bot: { verificado: true }
+
+  Bot->>API: POST /identidad/vincular (tras OTP verificado)
+  API->>DB: UPSERT identidades_canal (verificado_en=NOW)
+  Bot->>API: GET /pacientes/pac_ana_demo/contexto (x-canal=whatsapp)
+  API->>Redis: GET ctx:pac_ana_demo (fallback MySQL si expira)
+  API-->>Bot: { folio, estudio: "Ultrasonido abdominal", clinica: "Puebla Centro" }
+  Bot-->>Ana: "¡Gracias, Ana! Tienes pendiente Ultrasonido abdominal en Puebla Centro. ¿Continuamos?"
+
+  Ana->>Bot: "Sí, continuar" → "Mañana 9:00"
+  Bot->>API: POST /tramites/:id/avanzar (estadoDestino=cita_agendada, canal=whatsapp)
+  API->>DB: UPDATE tramites + INSERT citas + eventos (canal.cambiado, cita.agendada)
+  API->>Redis: SET ctx:pac_ana_demo + XADD eventos
+  API-->>RT: evento:omnicanal (canal.cambiado + cita.agendada)
+  Bot-->>Ana: "Cita agendada con código SDXXXXXX (sin repetir datos)"

@@ -1,0 +1,34 @@
+flowchart TD
+  subgraph Canales["1. Canales de Atención (sin acceso directo a BD)"]
+    W["Portal Web / Consola / Journey / Admin (Next.js)"]
+    WA["WhatsApp Bot (Cloud API + Cola + HMAC)"]
+    APP["App Móvil (Expo Router + SecureStore + Push)"]
+  end
+
+  subgraph Seguridad["2. Puerta Única API NestJS (Validación + Privacidad)"]
+    G["JwtAuthGuard + RolesGuard + PermissionsGuard + AccesoPacienteService (OTP)"]
+    Z["Validación Zod (contrato @salud-digna/shared)"]
+    C["Privacidad LFPDPPP: AES-256-GCM + curp_hash + Enmascarado + SanitizedLogger"]
+  end
+
+  subgraph Dominio["3. Motores de Dominio"]
+    ID["Identidad + OTP (#7, #8, #9)"]
+    TR["Trámites + Contexto + Vigencias (#12, #13, #25)"]
+    IA["Asistente IA + Guardrails 911 + i18n (#24, #25, #26)"]
+    OP["Tickets + Resultados + Servicio + Alertas + Facturación (#16, #30-#33)"]
+    BUS["EventBus Outbox (grupos: timeline, tickets, metricas, notificaciones, realtime)"]
+  end
+
+  subgraph Datos["4. Almacenamiento y Tiempo Real"]
+    SQL[("MySQL 8 (15 tablas Prisma)\npacientes, identidades_canal, tramites,\npasos_tramite, citas, resultados,\ninteracciones, eventos, tickets, auditoria")]
+    RED[("Redis 7 (AOF)\notp:* · ctx:* · cat:*\npush:* · wa:sesion:* · Stream eventos")]
+    SIO["Socket.IO (salas paciente:{id}, rol:asesor, rol:admin)"]
+  end
+
+  W & WA & APP --> G --> Z --> C
+  C --> ID & TR & IA & OP
+  ID & TR & IA & OP --> BUS
+  ID & TR & OP --> SQL
+  ID & TR & BUS --> RED
+  BUS --> SQL
+  BUS --> SIO --> W

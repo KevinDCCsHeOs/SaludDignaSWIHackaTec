@@ -10,7 +10,9 @@
     "ios": "expo start --ios",
     "build": "tsc --noEmit -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "eas-build-post-install": "npm run build --workspace=@salud-digna/shared && npm run build --workspace=@salud-digna/ui",
+    "prebuild:paquetes": "npm run build --workspace=@salud-digna/shared && npm run build --workspace=@salud-digna/ui"
   },
   "dependencies": {
     "@salud-digna/shared": "*",

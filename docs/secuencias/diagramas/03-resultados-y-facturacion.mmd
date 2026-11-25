@@ -1,0 +1,35 @@
+sequenceDiagram
+  autonumber
+  actor Revisor as Revisor Técnico
+  actor Medico as Médico Validador
+  actor Ana as Ana (WhatsApp / App)
+  participant API as Núcleo API (NestJS)
+  participant DB as MySQL 8 + Auditoría
+  participant Bot as WhatsApp Bot
+  participant App as App Móvil (Expo)
+
+  Note over Revisor,Ana: A. Jerarquía clínica de liberación de resultados (#30)
+  Ana->>API: GET /resultados (cuando estado = captura)
+  API-->>Ana: { total: 0, resultados: [] } (GET /:id retorna 403 Forbidden)
+
+  Revisor->>API: POST /resultados/:id/revisar (aprobado=true, rol=revisor_tecnico)
+  API->>DB: estado = revision_tecnica + INSERT auditoria
+  Medico->>API: POST /resultados/:id/validar (aprobado=true, rol=medico)
+  API->>DB: estado = validacion_medica + INSERT auditoria
+  Medico->>API: POST /resultados/:id/liberar (rol=medico)
+  API->>DB: estado = liberado + genera PDF + INSERT auditoria + evento resultado.liberado
+  API-->>App: Push Expo ("Tus resultados ya están listos") + notificación canal preferido
+
+  Ana->>API: GET /resultados/:id/pdf (JWT paciente)
+  API-->>Ana: 200 OK (application/pdf)
+
+  Note over Ana,App: B. Facturación simulada omnicanal (#33)
+  Ana->>API: PUT /facturacion/pacientes/pac_ana_demo/datos-fiscales (RFC, régimen, CP)
+  API->>DB: Guarda datosFiscalesCifrados (AES-256-GCM)
+  Ana->>Bot: "Quiero mi factura" (sesión WhatsApp verificada con OTP)
+  Bot->>API: POST /facturacion/solicitar (reutiliza datos cifrados)
+  API-->>Bot: { factura: { estatus: "emitida" }, pdfUrl }
+  Bot->>API: GET /facturacion/:id/pdf (x-service-token)
+  Bot-->>Ana: Sube PDF a Meta (media_id) y envía documento por WhatsApp
+  Ana->>App: Abre detalle del trámite → GET /facturacion/tramites/:folio
+  App-->>Ana: Botón "Descargar factura PDF" disponible

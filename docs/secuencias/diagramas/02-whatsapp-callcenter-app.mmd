@@ -1,0 +1,44 @@
+sequenceDiagram
+  autonumber
+  actor Ana as Ana (Teléfono / App Móvil)
+  actor Carlos as Carlos (Asesor Call Center)
+  participant Consola as Consola Web (/consola)
+  participant API as Núcleo API (NestJS)
+  participant DB as MySQL 8
+  participant Redis as Redis 7
+  participant Push as Expo Push Service
+  participant App as App Móvil (Expo)
+  participant Journey as Patient Journey (/journey)
+
+  Note over Ana,Consola: Etapa 3 — Call Center (contexto completo, datos enmascarados)
+  Ana->>Carlos: Llama con duda de preparación y para confirmar cita
+  Carlos->>Consola: Busca por teléfono/nombre/folio (Alt+B)
+  Consola->>API: GET /identidad/pacientes/buscar?q=2221234567 (JWT asesor)
+  API->>DB: Consulta paciente + proyectarPacientePorRol (CURP ****ZN04)
+  API->>DB: INSERT auditoria (leer PacienteBusqueda)
+  API-->>Consola: Ficha enmascarada + canal actual (whatsapp)
+
+  Carlos->>Consola: Valida identidad por preguntas de seguridad
+  Consola->>API: POST /otp/verificar-call-center (fechaNac + últimos 4 dígitos)
+  API->>Redis: SET otp:verificado:pac_ana_demo:call_center
+  API-->>Consola: { verificado: true }
+
+  Consola->>API: GET /pacientes/pac_ana_demo/timeline + GET /pacientes/pac_ana_demo/contexto
+  API-->>Consola: Historial Web → WhatsApp + Ultrasonido abdominal + Puebla Centro
+
+  Carlos->>Consola: Registra llamada (Alt+L) y confirma cita
+  Consola->>API: POST /canales/llamadas (motivo, notas, resultado)
+  API->>DB: INSERT interacciones (canal=call_center)
+  Consola->>API: POST /tramites/:id/avanzar (estadoDestino=cita_confirmada, canal=call_center)
+  API->>DB: UPDATE tramites + UPDATE citas (confirmada) + eventos (canal.cambiado, cita.confirmada)
+  API->>Redis: SET ctx:pac_ana_demo + XADD eventos
+
+  Note over API,App: Etapa 4 — Propagación en tiempo real y App Móvil
+  API-->>Journey: Socket.IO sala paciente:pac_ana_demo (cita.confirmada)
+  API->>Redis: GET push:pac_ana_demo (ExpoPushToken)
+  API->>Push: POST /v2/push/send ("Tu cita está confirmada", sin datos clínicos)
+  Push-->>App: Notificación push nativa en dispositivo de Ana
+
+  Ana->>App: Abre la App Salud Digna (JWT en expo-secure-store)
+  App->>API: GET /pacientes/pac_ana_demo/tramites + GET /pacientes/pac_ana_demo/timeline
+  API-->>App: Cita confirmada + código de confirmación + timeline Web → WhatsApp → Call Center → App

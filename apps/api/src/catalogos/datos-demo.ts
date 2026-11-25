@@ -650,7 +650,7 @@ export const PACIENTES_DEMO: readonly PacienteDemoSeed[] = [
     canalPreferido: 'whatsapp',
     idioma: 'es',
     region: 'Puebla',
-    usuarioId: null,
+    usuarioId: 'usr_paciente_miguel',
     esDemo: true,
   },
   {

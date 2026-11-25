@@ -139,6 +139,16 @@ export const USUARIOS_DEMO_SEMILLA: readonly CredencialDemoSemilla[] = [
     region: 'Monterrey',
     pacienteId: null,
   },
+  {
+    // Segundo paciente de prueba (dos perfiles a la vez en WhatsApp, web y app)
+    id: 'usr_paciente_miguel',
+    email: 'miguel.hernandez@demo.saluddigna.local',
+    nombre: 'Miguel Hernández (Demo)',
+    contrasenaDemo: 'DemoPaciente2026!',
+    rol: 'paciente',
+    region: 'Puebla',
+    pacienteId: 'pac_demo_02',
+  },
 ] as const;
 
 const COSTO_BCRYPT = process.env.NODE_ENV === 'test' ? 4 : 10;

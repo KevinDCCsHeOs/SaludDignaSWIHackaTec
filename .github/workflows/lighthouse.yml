@@ -1,0 +1,53 @@
+name: Lighthouse CI (Web)
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'lighthouserc.json'
+  workflow_dispatch:
+
+jobs:
+  lighthouse:
+    name: Lighthouse (Performance, Accesibilidad y Buenas Prácticas >= 90)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22 y caché npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias y compilar web
+        run: |
+          npm ci
+          npm run build --workspace=@salud-digna/shared
+          npm run build --workspace=@salud-digna/ui
+          npm run build --workspace=@salud-digna/web
+
+      - name: Levantar Next.js en modo producción y ejecutar Lighthouse CI
+        run: |
+          npm run start --workspace=@salud-digna/web &
+          PID_WEB=$!
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3002/api/health >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          npx --yes @lhci/cli@0.14.x autorun --config=./lighthouserc.json
+          EXIT_CODE=$?
+          kill $PID_WEB || true
+          exit $EXIT_CODE
+
+      - name: Adjuntar reporte Lighthouse como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 14

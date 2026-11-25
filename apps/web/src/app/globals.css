@@ -6,11 +6,15 @@
   --sd-secondary: #1d4ed8;
   --sd-bg: #f8fafc;
   --sd-surface: #ffffff;
-  --sd-border: #e2e8f0;
+  --sd-border: #cbd5e1;
   --sd-text: #0f172a;
-  --sd-muted: #475569;
-  --sd-warn: #b45309;
-  --sd-danger: #b91c1c;
+  --sd-muted: #334155;
+  --sd-warn: #92400e;
+  --sd-danger: #991b1b;
+}
+
+html {
+  font-size: 16px;
 }
 
 * {
@@ -19,6 +23,7 @@
 
 body {
   margin: 0;
+  font-size: 1rem;
   font-family:
     system-ui,
     -apple-system,
@@ -93,8 +98,16 @@ a {
 .sd-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 0.95rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+}
+
+.sd-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.4rem;
 }
 
 .sd-nav a:hover {
@@ -166,10 +179,11 @@ a {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+  min-height: 44px;
   border-radius: 8px;
-  padding: 0.55rem 1rem;
+  padding: 0.6rem 1rem;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   cursor: pointer;
   border: 1px solid transparent;
 }
@@ -223,10 +237,11 @@ a {
 .sd-field input,
 .sd-field select,
 .sd-field textarea {
+  min-height: 44px;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--sd-border);
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-family: inherit;
 }
 
@@ -507,4 +522,10 @@ a {
 
 .sd-presentacion h1 {
   font-size: 2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-canal-arrow-live {
+    animation: none;
+  }
 }

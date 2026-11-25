@@ -21,6 +21,7 @@ import { EventPublisherService } from '../common/eventos/event-publisher.service
 import { KeyValueStoreService } from '../common/redis/kv-store.service';
 import { PacienteStoreService } from '../identidad/paciente-store.service';
 import { CifradoService } from '../privacidad/cifrado.service';
+import { despacharOtpWhatsapp } from './despacho-otp-whatsapp';
 
 const TTL_OTP_SEGUNDOS = 300; // 5 min (#8)
 const TTL_BLOQUEO_SEGUNDOS = 900; // 15 min tras 3 fallos (#8)
@@ -149,6 +150,10 @@ export class OtpService {
           : undefined,
       enviadoEn: new Date().toISOString(),
     });
+
+    if (canal === 'whatsapp' && paciente.telefonoE164) {
+      await despacharOtpWhatsapp(paciente.telefonoE164, codigo, paciente.idioma);
+    }
 
     await this.auditoria.registrar({
       usuarioId: null,

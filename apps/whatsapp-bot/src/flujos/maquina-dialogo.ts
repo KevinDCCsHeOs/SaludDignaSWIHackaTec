@@ -357,33 +357,43 @@ export class MaquinaDialogoWhatsapp {
     // 8. Menú, facturación simulada (#33), consultas rápidas y asistente IA reutilizable (#21, #24, #25, #26, #31)
     if (/\b(factura|facturar|facturaci[oó]n|invoice)\b/i.test(texto) && sesion.pacienteId) {
       if (this.api.solicitarFactura) {
+        const tf = textosDe(sesion.idioma).factura;
+        let factura: { id: string; folioFiscalSimulado: string } | null = null;
         try {
           const ctx = await this.api.obtenerContexto(sesion.pacienteId);
           const tramiteId = sesion.tramiteId ?? ctx?.tramiteId;
           if (!tramiteId) {
-            await this.meta.enviarTexto(
-              msg.telefono,
-              'No encontramos un trámite activo para facturar en este momento.',
-            );
+            await this.meta.enviarTexto(msg.telefono, tf.sinTramite);
           } else {
             const resFac = await this.api.solicitarFactura({
               tramiteId,
               pacienteId: sesion.pacienteId,
             });
-            const base =
-              this.api.obtenerBaseUrl?.() ?? process.env.API_BASE_URL ?? 'http://localhost:3000';
-            await this.meta.enviarDocumentoPdf(
-              msg.telefono,
-              `${base}${resFac.pdfUrl}`,
-              `factura-${resFac.factura.folioFiscalSimulado}.pdf`,
-              `Factura simulada ${resFac.factura.folioFiscalSimulado} (también disponible para descarga en la App Salud Digna).`,
-            );
+            factura = resFac.factura;
           }
         } catch {
-          await this.meta.enviarTexto(
-            msg.telefono,
-            'Para emitir tu factura sin repetir datos, guarda tu RFC, régimen fiscal y código postal una sola vez en el portal web o la app.',
-          );
+          await this.meta.enviarTexto(msg.telefono, tf.faltanDatos);
+        }
+
+        if (factura) {
+          const folio = factura.folioFiscalSimulado;
+          try {
+            if (!this.api.descargarPdfFactura) {
+              throw new Error('El cliente del API no soporta la descarga del PDF');
+            }
+            const pdf = await this.api.descargarPdfFactura(factura.id);
+            await this.meta.enviarDocumentoPdf(
+              msg.telefono,
+              pdf,
+              `factura-${folio}.pdf`,
+              interpolar(tf.leyendaPdf, { folio }),
+            );
+          } catch (error) {
+            console.error(
+              `[whatsapp-bot] No se pudo adjuntar la factura: ${(error as Error).message}`,
+            );
+            await this.meta.enviarTexto(msg.telefono, interpolar(tf.descargaEnApp, { folio }));
+          }
         }
         this.sesiones.guardar(sesion);
         return sesion;

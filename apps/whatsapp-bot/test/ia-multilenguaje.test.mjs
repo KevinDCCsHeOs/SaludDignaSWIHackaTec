@@ -104,6 +104,7 @@ test('Issues #24, #25 y #26 (bot WhatsApp): urgencia 911 sin bloqueo OTP, inglé
 });
 
 test('Issue #33 (bot WhatsApp): el paciente solicita su factura y recibe el PDF por documento de WhatsApp', async () => {
+  let pdfSolicitado = null;
   const apiMock = {
     resolverIdentidad: async () => ({ estado: 'conocido', pacienteId: 'pac_ana_demo' }),
     solicitarOtp: async () => ({ enviado: true }),
@@ -135,7 +136,10 @@ test('Issue #33 (bot WhatsApp): el paciente solicita su factura y recibe el PDF 
       },
       pdfUrl: '/facturacion/fac_demo_01/pdf',
     }),
-    obtenerBaseUrl: () => 'https://api.saluddigna.demo',
+    descargarPdfFactura: async (id) => {
+      pdfSolicitado = id;
+      return new TextEncoder().encode('%PDF-1.4 factura simulada');
+    },
   };
 
   const meta = new ClienteMetaCloudApi();
@@ -162,4 +166,53 @@ test('Issue #33 (bot WhatsApp): el paciente solicita su factura y recibe el PDF 
   const ultimo = meta.obtenerHistorial().at(-1);
   assert.equal(ultimo.tipo, 'document');
   assert.match(JSON.stringify(ultimo.payload), /FAC-DEMO-2026-ABC123/);
+  // El PDF se descarga con el token de servicio y se envía por media_id, nunca por URL (#33, LFPDPPP)
+  assert.equal(pdfSolicitado, 'fac_demo_01');
+  assert.match(ultimo.payload.document.id, /^media\./);
+  assert.equal(ultimo.payload.document.link, undefined);
+});
+
+test('Issue #33 (bot WhatsApp): si el PDF no se puede adjuntar, se avisa que la factura está en la app', async () => {
+  const apiMock = {
+    obtenerContexto: async () => ({ tramiteId: 'trm_01' }),
+    solicitarFactura: async () => ({
+      factura: {
+        id: 'fac_demo_02',
+        folioFiscalSimulado: 'FAC-DEMO-2026-XYZ789',
+        estatus: 'emitida',
+        reutilizoDatosGuardados: true,
+      },
+      pdfUrl: '/facturacion/fac_demo_02/pdf',
+    }),
+    descargarPdfFactura: async () => {
+      throw new Error('API /facturacion/:id/pdf respondió 403');
+    },
+    registrarInteraccion: async () => ({ ok: true }),
+  };
+
+  const meta = new ClienteMetaCloudApi();
+  const sesiones = new SesionWaStore();
+  sesiones.guardar({
+    telefono: '+522221234567',
+    pacienteId: 'pac_ana_demo',
+    nombrePaciente: 'Ana',
+    tramiteId: 'trm_01',
+    clinicaId: null,
+    paso: 'menu_principal',
+    pasoInterrumpido: null,
+    idioma: 'es',
+    ultimoMensajeEn: new Date().toISOString(),
+  });
+
+  const dialogo = new MaquinaDialogoWhatsapp(apiMock, meta, sesiones);
+  await dialogo.procesarMensajeEntrante({
+    messageId: 'wamid.fac.2',
+    telefono: '+522221234567',
+    texto: 'Necesito mi factura',
+  });
+
+  const ultimo = meta.obtenerHistorial().at(-1);
+  assert.equal(ultimo.tipo, 'text');
+  assert.match(ultimo.payload.text.body, /FAC-DEMO-2026-XYZ789/);
+  assert.match(ultimo.payload.text.body, /Mis trámites/);
 });

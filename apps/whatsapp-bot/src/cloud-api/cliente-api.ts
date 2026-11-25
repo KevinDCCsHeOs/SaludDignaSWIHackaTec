@@ -1,4 +1,5 @@
 import type { CanalAtencion, EstadoResolucionIdentidad } from '@salud-digna/shared';
+import type { SesionDialogoWa } from './sesion-store';
 
 export interface ContextoPacienteApi {
   pacienteId: string;
@@ -96,6 +97,9 @@ export interface ClienteApiOmnicanal {
     };
     pdfUrl: string;
   }>;
+  /** Conversación del bot guardada por el API en Redis (clave = SHA-256 del teléfono). */
+  obtenerSesionWa?(clave: string): Promise<SesionDialogoWa | null>;
+  guardarSesionWa?(clave: string, sesion: SesionDialogoWa): Promise<void>;
   /** Descarga el PDF de una factura con el token de servicio (nunca se expone una URL pública). */
   descargarPdfFactura?(facturaId: string): Promise<Uint8Array>;
   registrarInteraccion(entrada: {
@@ -297,6 +301,20 @@ export class ClienteHttpApiBot implements ClienteApiOmnicanal {
         pacienteId: entrada.pacienteId,
         canal: 'whatsapp',
       }),
+    });
+  }
+
+  async obtenerSesionWa(clave: string): Promise<SesionDialogoWa | null> {
+    const res = await this.pedir<{ sesion: SesionDialogoWa | null }>(
+      `/canales/whatsapp/sesiones/${clave}`,
+    );
+    return res.sesion;
+  }
+
+  async guardarSesionWa(clave: string, sesion: SesionDialogoWa): Promise<void> {
+    await this.pedir(`/canales/whatsapp/sesiones/${clave}`, {
+      method: 'PUT',
+      body: JSON.stringify({ sesion }),
     });
   }
 

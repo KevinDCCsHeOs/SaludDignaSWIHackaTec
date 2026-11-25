@@ -65,6 +65,7 @@ export class MaquinaDialogoWhatsapp {
     const texto = (msg.botonId ?? msg.texto).trim();
     const textoLower = texto.toLowerCase();
 
+    await this.sesiones.hidratar(msg.telefono);
     const sesion = this.sesiones.obtener(msg.telefono) ?? {
       telefono: msg.telefono,
       pacienteId: null,
@@ -457,6 +458,7 @@ export class MaquinaDialogoWhatsapp {
    * Envía recordatorio mediante plantilla aprobada cuando pasaron más de 24 h sin respuesta (#21).
    */
   async enviarRecordatorioSiExpiroVentana24h(telefono: string, folio: string): Promise<boolean> {
+    await this.sesiones.hidratar(telefono);
     const sesion = this.sesiones.obtener(telefono);
     if (!sesion || !this.sesiones.expiroVentana24h(sesion)) {
       return false;

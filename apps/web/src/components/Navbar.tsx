@@ -42,12 +42,12 @@ export function Navbar() {
               <span>
                 {usuario.nombre} ({usuario.rol})
               </span>
-              <button type="button" className="sd-btn-secondary" onClick={cerrarSesion}>
+              <button type="button" className="sd-btn-secondary" onClick={() => cerrarSesion()}>
                 {t.app.nav.cerrarSesion}
               </button>
             </div>
           ) : (
-            <Link href="/login" className="sd-btn-primary">
+            <Link href="/login" prefetch={false} className="sd-btn-primary">
               {t.app.nav.iniciarSesion}
             </Link>
           )}

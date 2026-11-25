@@ -41,7 +41,8 @@
     "accesosRapidos": "Accesos rápidos demo (datos ficticios)",
     "comoAna": "Entrar como Ana (Paciente)",
     "comoAsesor": "Entrar como Carlos (Asesor)",
-    "comoAdmin": "Entrar como Admin"
+    "comoAdmin": "Entrar como Admin",
+    "sesionExpirada": "Tu sesión expiró o se cerró. Inicia sesión de nuevo con la misma cuenta o con otra."
   },
   "cotizar": {
     "paso1": "1 · Estudio",

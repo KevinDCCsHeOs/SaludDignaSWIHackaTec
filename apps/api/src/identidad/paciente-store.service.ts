@@ -39,12 +39,13 @@ export interface IdentidadCanalRegistro {
  * respaldarse con `PrismaService` cuando la BD MySQL esté conectada.
  */
 /**
- * Teléfono ficticio de Ana. En la VPS se puede sustituir con `DEMO_TELEFONO_PACIENTE` (el celular
- * del equipo que opera el demo, registrado como destinatario en Meta) para que WhatsApp la reconozca.
- * El número real vive solo en `infra/.env.prod`, nunca en el repositorio.
+ * Teléfonos de los pacientes ficticios del demo. En la VPS se sustituyen con
+ * `DEMO_TELEFONO_PACIENTE` (Ana) y `DEMO_TELEFONO_PACIENTE_2` (Miguel): los celulares del equipo
+ * que operan el demo, registrados como destinatarios en Meta, para que WhatsApp los reconozca.
+ * Los números reales viven solo en `infra/.env.prod`, nunca en el repositorio.
  */
-function telefonoDemoAna(): string {
-  const configurado = process.env.DEMO_TELEFONO_PACIENTE?.trim();
+function telefonoDemo(variable: string, ficticio: string): string {
+  const configurado = process.env[variable]?.trim();
   if (configurado) {
     try {
       return normalizarTelefonoE164(configurado);
@@ -52,7 +53,7 @@ function telefonoDemoAna(): string {
       // Valor inválido: se conserva el ficticio
     }
   }
-  return '+522221234567';
+  return ficticio;
 }
 
 @Injectable()
@@ -78,7 +79,7 @@ export class PacienteStoreService {
       curpHash: this.cifrado.hashCurp(curpDemoAna),
       datosFiscalesCifrados: null,
       email: 'ana.lopez@demo.saluddigna.local',
-      telefonoE164: telefonoDemoAna(),
+      telefonoE164: telefonoDemo('DEMO_TELEFONO_PACIENTE', '+522221234567'),
       canalPreferido: 'whatsapp',
       idioma: 'es',
       region: 'Puebla',
@@ -99,6 +100,38 @@ export class PacienteStoreService {
       metodoVerificacion: 'login_password',
       esPrincipal: true,
       creadoEn: '2026-11-24T10:10:00.000Z',
+    });
+
+    // Segundo perfil de prueba: permite probar dos conversaciones de WhatsApp al mismo tiempo
+    const curpDemoMiguel = 'HERM880722HPLRZN02';
+    const miguel: PacienteRegistro = {
+      id: 'pac_demo_02',
+      nombre: 'Miguel',
+      apellidos: 'Hernández Demo',
+      fechaNacCifrada: this.cifrado.cifrar('1988-07-22'),
+      curpCifrado: this.cifrado.cifrar(curpDemoMiguel),
+      curpHash: this.cifrado.hashCurp(curpDemoMiguel),
+      datosFiscalesCifrados: null,
+      email: 'miguel.hernandez@demo.saluddigna.local',
+      telefonoE164: telefonoDemo('DEMO_TELEFONO_PACIENTE_2', '+522221000002'),
+      canalPreferido: 'whatsapp',
+      idioma: 'es',
+      region: 'Puebla',
+      esDemo: true,
+      usuarioId: 'usr_paciente_miguel',
+      fusionadoEnId: null,
+      creadoEn: '2026-11-24T10:20:00.000Z',
+    };
+    this.pacientes.set(miguel.id, miguel);
+    this.identidades.push({
+      id: 'idc_web_miguel_demo',
+      pacienteId: miguel.id,
+      canal: 'web',
+      identificador: 'miguel.hernandez@demo.saluddigna.local',
+      verificadoEn: '2026-11-24T10:20:00.000Z',
+      metodoVerificacion: 'login_password',
+      esPrincipal: true,
+      creadoEn: '2026-11-24T10:20:00.000Z',
     });
   }
 

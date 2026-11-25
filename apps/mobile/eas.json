@@ -11,8 +11,15 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.saluddigna-omnicanal.tech"
       }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.saluddigna-omnicanal.tech"
+      }
+    }
   }
 }

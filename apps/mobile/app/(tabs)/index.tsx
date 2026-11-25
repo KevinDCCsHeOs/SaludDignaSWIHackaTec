@@ -1,11 +1,27 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { apiMobile } from '../../src/lib/api';
 import { useMobileSession } from '../../src/lib/session-context';
 
 export default function InicioScreen() {
   const { sesion, tramites, sinConexion, paleta, factorFuente, t, recargarTramites } =
     useMobileSession();
   const activo = tramites.find((tr) => tr.estado !== 'cerrado' && tr.estado !== 'cancelado');
+  const [avisoClinica, setAvisoClinica] = useState<string | null>(null);
+
+  useEffect(() => {
+    const clinicaId = activo?.contexto.clinica?.id;
+    apiMobile
+      .obtenerEstatusServicio()
+      .then((res) => {
+        const inc = clinicaId
+          ? res.incidencias.find((i) => i.clinicaId === clinicaId)
+          : res.incidencias[0];
+        setAvisoClinica(inc ? `${inc.nombre}: ${inc.mensaje}` : null);
+      })
+      .catch(() => undefined);
+  }, [activo?.contexto.clinica?.id]);
 
   return (
     <ScrollView
@@ -16,6 +32,16 @@ export default function InicioScreen() {
         <View style={{ backgroundColor: paleta.alertaFondo, padding: 12, borderRadius: 10 }}>
           <Text style={{ color: paleta.alertaTexto, fontSize: 14 * factorFuente }}>
             {t.app.sinConexion}
+          </Text>
+        </View>
+      )}
+
+      {avisoClinica && (
+        <View style={{ backgroundColor: paleta.alertaFondo, padding: 12, borderRadius: 10 }}>
+          <Text
+            style={{ color: paleta.alertaTexto, fontSize: 13 * factorFuente, fontWeight: '600' }}
+          >
+            Aviso de servicio en clínica: {avisoClinica}
           </Text>
         </View>
       )}

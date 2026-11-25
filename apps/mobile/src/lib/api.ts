@@ -93,4 +93,16 @@ export const apiMobile = {
     token: string,
     body: { pacienteId: string; expoPushToken: string; plataforma: 'android' | 'ios' },
   ) => pedir('/canales/push-tokens', { method: 'POST', token, body }),
+
+  obtenerEstatusServicio: (region?: string) => {
+    const qs = region ? `?region=${encodeURIComponent(region)}` : '';
+    return pedir<{
+      incidencias: Array<{
+        clinicaId: string;
+        nombre: string;
+        estatus: string;
+        mensaje: string;
+      }>;
+    }>(`/servicio/estatus${qs}`);
+  },
 };

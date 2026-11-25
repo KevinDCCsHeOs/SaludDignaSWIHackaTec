@@ -9,6 +9,7 @@
     "build": "prisma generate --schema=prisma/schema.prisma && tsc -p tsconfig.json",
     "typecheck": "prisma generate --schema=prisma/schema.prisma && tsc --noEmit -p tsconfig.json",
     "test": "node --test test/*.test.mjs",
+    "eval:ia": "node src/ia/eval/evaluar.mjs",
     "prisma:validate": "prisma validate --schema=prisma/schema.prisma",
     "prisma:format:check": "prisma format --check --schema=prisma/schema.prisma",
     "prisma:generate": "prisma generate --schema=prisma/schema.prisma",

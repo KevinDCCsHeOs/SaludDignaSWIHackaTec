@@ -5,7 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { CanalAtencion, EstadoResolucionIdentidad, RolUsuario } from '@salud-digna/shared';
+import type {
+  CanalAtencion,
+  EstadoResolucionIdentidad,
+  IdiomaPaciente,
+  RolUsuario,
+} from '@salud-digna/shared';
 import { CANALES_ATENCION, IDIOMAS_PACIENTE } from '@salud-digna/shared';
 import { z } from 'zod';
 import { AuditoriaService } from '../auditoria/auditoria.service';
@@ -339,6 +344,20 @@ export class IdentityResolverService {
    */
   buscarPacientesMinimizado(termino: string, rol: RolUsuario) {
     return this.store.buscarPorTexto(termino).map((p) => this.obtenerPerfilMinimizado(p.id, rol));
+  }
+
+  /**
+   * Actualiza la preferencia de idioma del paciente (`es`, `en`, `nah`, #26).
+   */
+  actualizarIdiomaPaciente(pacienteId: string, idioma: IdiomaPaciente) {
+    if (!IDIOMAS_PACIENTE.includes(idioma)) {
+      throw new BadRequestException('Idioma no soportado (usa es, en o nah)');
+    }
+    const actualizado = this.store.actualizarIdioma(pacienteId, idioma);
+    if (!actualizado) {
+      throw new NotFoundException('Paciente no encontrado');
+    }
+    return { pacienteId: actualizado.id, idioma: actualizado.idioma };
   }
 
   /**

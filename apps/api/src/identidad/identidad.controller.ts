@@ -1,5 +1,16 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import type { CanalAtencion } from '@salud-digna/shared';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { CanalAtencion, IdiomaPaciente } from '@salud-digna/shared';
 import type { Request } from 'express';
 import { Auditar, Permisos, RequiereCanalVerificado, Roles } from '../auth/decoradores';
 import type { UsuarioAutenticado } from '../auth/guards';
@@ -120,5 +131,22 @@ export class IdentidadController {
       pacienteId,
       req.usuario?.rol ?? 'asesor_ia',
     );
+  }
+
+  /**
+   * Guarda la preferencia de idioma del paciente (`es`, `en`, `nah`, #26).
+   */
+  @Roles('paciente', 'asesor_ia', 'asesor', 'asesor_pro', 'admin')
+  @Auditar({ accion: 'actualizar', entidad: 'PacienteIdioma' })
+  @Patch('pacientes/:pacienteId/idioma')
+  actualizarIdioma(
+    @Param('pacienteId') pacienteId: string,
+    @Body() body: { idioma: IdiomaPaciente },
+    @Req() req: Request & { usuario?: UsuarioAutenticado },
+  ) {
+    if (req.usuario?.rol === 'paciente' && req.usuario.pacienteId !== pacienteId) {
+      throw new ForbiddenException('Solo puedes actualizar tu propia preferencia de idioma');
+    }
+    return this.identidadService.actualizarIdiomaPaciente(pacienteId, body.idioma);
   }
 }

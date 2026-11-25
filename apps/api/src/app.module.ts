@@ -7,6 +7,7 @@ import { CommonModule } from './common/common.module';
 import { ContextoModule } from './contexto/contexto.module';
 import { EventosModule } from './eventos/eventos.module';
 import { HealthController } from './health.controller';
+import { IaModule } from './ia/ia.module';
 import { IdentidadModule } from './identidad/identidad.module';
 import { OtpModule } from './otp/otp.module';
 import { PrivacidadModule } from './privacidad/privacidad.module';
@@ -31,6 +32,7 @@ import { TramitesModule } from './tramites/tramites.module';
     TimelineModule,
     TicketsModule,
     CanalesModule,
+    IaModule,
   ],
   controllers: [HealthController],
 })

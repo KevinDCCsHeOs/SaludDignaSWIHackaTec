@@ -48,6 +48,12 @@ export interface NotificacionPushDespachada {
 const URL_EXPO_PUSH = 'https://exp.host/--/api/v2/push/send';
 /** Los tokens de push se guardan en Redis (AOF en producción): sobreviven reinicios sin migración. */
 const TTL_PUSH_TOKENS_SEG = 180 * 24 * 60 * 60;
+/** Conversaciones de WhatsApp: duran lo mismo que la ventana de servicio de Meta (24 h, #21). */
+const TTL_SESION_WA_SEG = 24 * 60 * 60;
+/** El bot identifica la conversación con SHA-256 del teléfono: el número nunca va en la clave. */
+const REGEX_CLAVE_SESION_WA = /^[a-f0-9]{64}$/;
+/** Límite defensivo: una sesión de diálogo ocupa ~300 bytes. */
+const MAX_BYTES_SESION_WA = 4096;
 const MAX_PUSH_DESPACHADOS_EN_MEMORIA = 500;
 
 function esTokenExpoReal(token: string): boolean {
@@ -143,6 +149,40 @@ export class CanalesService implements OnModuleInit {
         fecha: i.creadoEn,
       });
     }
+  }
+
+  private claveSesionWhatsapp(clave: string): string {
+    if (!REGEX_CLAVE_SESION_WA.test(clave)) {
+      throw new BadRequestException('Clave de sesión de WhatsApp inválida');
+    }
+    return `wa:sesion:${clave}`;
+  }
+
+  /**
+   * Conversación del bot guardada en Redis (#21, #39): sobrevive reinicios y redeploys del bot,
+   * que nunca se conecta a Redis directamente (solo habla con este API).
+   */
+  async obtenerSesionWhatsapp(clave: string): Promise<Record<string, unknown> | null> {
+    const crudo = await this.kv.get(this.claveSesionWhatsapp(clave));
+    if (!crudo) return null;
+    try {
+      return JSON.parse(crudo) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+
+  async guardarSesionWhatsapp(clave: string, sesion: unknown): Promise<{ guardada: true }> {
+    const redisClave = this.claveSesionWhatsapp(clave);
+    if (!sesion || typeof sesion !== 'object' || Array.isArray(sesion)) {
+      throw new BadRequestException('La sesión debe ser un objeto');
+    }
+    const serializada = JSON.stringify(sesion);
+    if (serializada.length > MAX_BYTES_SESION_WA) {
+      throw new BadRequestException('La sesión excede el tamaño permitido');
+    }
+    await this.kv.set(redisClave, serializada, TTL_SESION_WA_SEG);
+    return { guardada: true };
   }
 
   private claveTokens(pacienteId: string): string {

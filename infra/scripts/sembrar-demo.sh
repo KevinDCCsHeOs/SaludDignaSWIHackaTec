@@ -10,6 +10,12 @@ COMPOSE=(docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.p
 
 if [[ "${1:-}" == "--reset" ]]; then
   "${COMPOSE[@]}" run --rm --no-deps migraciones npm run demo:reset
+  # Estado efímero en Redis que apunta a los trámites borrados: conversaciones del bot,
+  # OTP y sesiones verificadas, y caché de contexto. Se conservan tokens push y catálogos.
+  for patron in 'wa:sesion:*' 'otp:*' 'sesion:verificada:*' 'ctx:*'; do
+    "${COMPOSE[@]}" exec -T redis sh -c \
+      "redis-cli --scan --pattern '$patron' | xargs -r redis-cli del > /dev/null"
+  done
 else
   "${COMPOSE[@]}" run --rm --no-deps migraciones npm run seed
 fi

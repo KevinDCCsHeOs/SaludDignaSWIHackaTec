@@ -16,7 +16,9 @@ export default function DetalleTramitePage() {
   const [razonSocial, setRazonSocial] = useState('');
   const [regimenFiscal, setRegimenFiscal] = useState('605');
   const [codigoPostal, setCodigoPostal] = useState('');
-  const [avisoFactura, setAvisoFactura] = useState<string | null>(null);
+  const [avisoFactura, setAvisoFactura] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(
+    null,
+  );
 
   const { data: tramite, isLoading } = useQuery({
     queryKey: ['tramites', folio],
@@ -72,19 +74,34 @@ export default function DetalleTramitePage() {
               },
             }),
       });
-      setAvisoFactura(`Factura simulada ${res.factura.folioFiscalSimulado} emitida correctamente.`);
+      setAvisoFactura({
+        tipo: 'ok',
+        texto: `Factura simulada ${res.factura.folioFiscalSimulado} emitida correctamente.`,
+      });
       await queryClient.invalidateQueries({ queryKey: ['factura', folio] });
       await queryClient.invalidateQueries({ queryKey: ['datos-fiscales', tramite.pacienteId] });
     } catch (err) {
-      setAvisoFactura(err instanceof Error ? err.message : 'Error al emitir factura');
+      setAvisoFactura({
+        tipo: 'error',
+        texto: err instanceof Error ? err.message : 'Error al emitir factura',
+      });
     }
   };
 
   const descargarFacturaPdf = async (facturaId: string) => {
     if (!token) return;
-    const blob = await apiWeb.descargarFacturaPdfBlob(token, facturaId);
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      const blob = await apiWeb.descargarFacturaPdfBlob(token, facturaId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      // Liberar la memoria del PDF cuando la pestaña nueva ya lo cargó
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      setAvisoFactura({
+        tipo: 'error',
+        texto: err instanceof Error ? err.message : 'No se pudo descargar la factura',
+      });
+    }
   };
 
   if (isLoading) return <p>{t.estados.cargando}</p>;
@@ -125,8 +142,11 @@ export default function DetalleTramitePage() {
       <section className="sd-card">
         <h2 style={{ marginTop: 0 }}>Facturación simulada (#33)</h2>
         {avisoFactura && (
-          <div className="sd-banner-pendiente" role="status">
-            {avisoFactura}
+          <div
+            className={avisoFactura.tipo === 'error' ? 'sd-alert-error' : 'sd-banner-pendiente'}
+            role={avisoFactura.tipo === 'error' ? 'alert' : 'status'}
+          >
+            {avisoFactura.texto}
           </div>
         )}
 

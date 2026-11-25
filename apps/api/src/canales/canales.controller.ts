@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
 import type { CanalAtencion } from '@salud-digna/shared';
 import type { Request } from 'express';
 import type { z } from 'zod';
@@ -90,5 +90,18 @@ export class CanalesController {
       tokens: await this.canales.listarPushTokens(pacienteId),
       notificacionesEnviadas: this.canales.obtenerPushDespachados(pacienteId),
     };
+  }
+
+  /** Solo el bot (`asesor_ia`) lee y guarda su conversación; la clave es SHA-256 del teléfono. */
+  @Roles('asesor_ia')
+  @Get('whatsapp/sesiones/:clave')
+  async obtenerSesionWhatsapp(@Param('clave') clave: string) {
+    return { sesion: await this.canales.obtenerSesionWhatsapp(clave) };
+  }
+
+  @Roles('asesor_ia')
+  @Put('whatsapp/sesiones/:clave')
+  guardarSesionWhatsapp(@Param('clave') clave: string, @Body() body: { sesion?: unknown }) {
+    return this.canales.guardarSesionWhatsapp(clave, body?.sesion);
   }
 }

@@ -219,6 +219,35 @@ export interface EstadisticasRolDto {
   tarjetas: Array<{ clave: string; etiqueta: string; valor: number | string }>;
 }
 
+/**
+ * Extrae el motivo legible de un error del API. NestJS responde `{ message }`, pero las validaciones
+ * con zod responden `{ mensaje, errores: { campo: [motivos] } }`; mostrar solo "Error HTTP 400"
+ * dejaba al paciente sin saber qué corregir.
+ */
+function mensajeDeError(data: unknown, status: number): string {
+  const cuerpo = (data ?? {}) as {
+    message?: unknown;
+    mensaje?: unknown;
+    errores?: Record<string, unknown>;
+  };
+  const errores = Object.values(cuerpo.errores ?? {})
+    .flat()
+    .filter((e): e is string => typeof e === 'string');
+  if (errores.length > 0) {
+    const base = typeof cuerpo.mensaje === 'string' ? `${cuerpo.mensaje}: ` : '';
+    return `${base}${errores.join('; ')}`;
+  }
+  if (typeof cuerpo.mensaje === 'string') return cuerpo.mensaje;
+  if (typeof cuerpo.message === 'string') return cuerpo.message;
+  if (Array.isArray(cuerpo.message)) return cuerpo.message.join(', ');
+  return `Error HTTP ${status}`;
+}
+
+async function errorDeRespuesta(res: Response): Promise<Error> {
+  const data = await res.json().catch(() => ({}));
+  return new Error(mensajeDeError(data, res.status));
+}
+
 async function pedirApi<T>(
   ruta: string,
   opciones: { method?: string; token?: string | null; body?: unknown; canal?: CanalAtencion } = {},
@@ -239,13 +268,7 @@ async function pedirApi<T>(
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const mensaje =
-      typeof data?.message === 'string'
-        ? data.message
-        : Array.isArray(data?.message)
-          ? data.message.join(', ')
-          : `Error HTTP ${res.status}`;
-    throw new Error(mensaje);
+    throw new Error(mensajeDeError(data, res.status));
   }
   return data as T;
 }
@@ -529,7 +552,7 @@ export const apiWeb = {
     const res = await fetch(`${API_URL}/admin/metricas/export.csv${qs}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+    if (!res.ok) throw await errorDeRespuesta(res);
     return res.text();
   },
 
@@ -575,7 +598,7 @@ export const apiWeb = {
     const res = await fetch(`${API_URL}/resultados/${encodeURIComponent(id)}/pdf`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+    if (!res.ok) throw await errorDeRespuesta(res);
     return res.blob();
   },
 
@@ -730,7 +753,7 @@ export const apiWeb = {
     const res = await fetch(`${API_URL}/facturacion/${encodeURIComponent(facturaId)}/pdf`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+    if (!res.ok) throw await errorDeRespuesta(res);
     return res.blob();
   },
 };

@@ -114,7 +114,16 @@ function describirError(error: unknown): string {
 export function crearServidorBot(opciones: OpcionesServidorBot = {}) {
   const api = opciones.api ?? new ClienteHttpApiBot();
   const meta = opciones.meta ?? new ClienteMetaCloudApi();
-  const sesiones = opciones.sesiones ?? new SesionWaStore();
+  const sesiones =
+    opciones.sesiones ??
+    new SesionWaStore(
+      api.obtenerSesionWa && api.guardarSesionWa
+        ? {
+            obtener: (clave) => api.obtenerSesionWa!(clave),
+            guardar: (clave, sesion) => api.guardarSesionWa!(clave, sesion),
+          }
+        : undefined,
+    );
   const dialogo = new MaquinaDialogoWhatsapp(api, meta, sesiones);
   const verifyToken = opciones.verifyToken ?? process.env.WA_VERIFY_TOKEN ?? 'dev-wa-verify-token';
   const appSecret = opciones.appSecret ?? process.env.WA_APP_SECRET;

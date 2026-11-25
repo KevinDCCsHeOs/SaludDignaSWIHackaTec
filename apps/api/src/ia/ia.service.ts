@@ -13,6 +13,7 @@ import { CatalogosService } from '../catalogos/catalogos.service';
 import { ContextoService } from '../contexto/contexto.service';
 import { IdentityResolverService } from '../identidad/identidad.service';
 import { AccesoPacienteService } from '../otp/acceso-paciente.service';
+import { ServicioService } from '../servicio/servicio.service';
 import { TicketsService } from '../tickets/tickets.service';
 import {
   clasificarMensajeNlp,
@@ -100,6 +101,7 @@ export class IaService {
     private readonly accesoPaciente: AccesoPacienteService,
     private readonly tickets: TicketsService,
     private readonly canales: CanalesService,
+    private readonly servicio: ServicioService,
   ) {}
 
   async procesarMensaje(
@@ -579,9 +581,26 @@ export class IaService {
 
     if (intencion === 'estatus') {
       if (contextoMinimo?.folio) {
+        let detalleDiagnostico = '';
+        let avisoClinica = '';
+        try {
+          const proc = this.servicio.obtenerProcesoDiagnostico(contextoMinimo.folio);
+          detalleDiagnostico =
+            idioma === 'en'
+              ? ` Diagnostic stage: ${proc.etiquetaEtapa} (${proc.progresoPct}%).`
+              : ` Etapa diagnóstica: ${proc.etiquetaEtapa} (${proc.progresoPct}%, estimado: ${proc.horaEstimadaEntrega.slice(11, 16)} h).`;
+          if (proc.clinica?.tieneIncidencia && proc.clinica.mensajeEstatus) {
+            avisoClinica =
+              idioma === 'en'
+                ? ` Clinic notice: ${proc.clinica.mensajeEstatus}`
+                : ` Aviso de clínica: ${proc.clinica.mensajeEstatus}`;
+          }
+        } catch {
+          // Opcional si el folio aún no tiene detalle diagnóstico
+        }
         return idioma === 'en'
-          ? `${saludoNombre}your active process ${contextoMinimo.folio} (${contextoMinimo.estudioNombre ?? 'exam'}) is currently at step "${contextoMinimo.pasoActual ?? contextoMinimo.estadoTramite}" in ${contextoMinimo.clinicaNombre ?? 'your chosen clinic'}.`
-          : `${saludoNombre}tu trámite ${contextoMinimo.folio} (${contextoMinimo.estudioNombre ?? 'estudio'}) va en el paso "${contextoMinimo.pasoActual ?? contextoMinimo.estadoTramite}" en ${contextoMinimo.clinicaNombre ?? 'tu clínica'}. Puedes retomarlo en cualquier canal sin repetir datos.`;
+          ? `${saludoNombre}your active process ${contextoMinimo.folio} (${contextoMinimo.estudioNombre ?? 'exam'}) is currently at step "${contextoMinimo.pasoActual ?? contextoMinimo.estadoTramite}" in ${contextoMinimo.clinicaNombre ?? 'your chosen clinic'}.${detalleDiagnostico}${avisoClinica}`
+          : `${saludoNombre}tu trámite ${contextoMinimo.folio} (${contextoMinimo.estudioNombre ?? 'estudio'}) va en el paso "${contextoMinimo.pasoActual ?? contextoMinimo.estadoTramite}" en ${contextoMinimo.clinicaNombre ?? 'tu clínica'}.${detalleDiagnostico}${avisoClinica}`;
       }
       return idioma === 'en'
         ? `${saludoNombre}I do not see an active process right now. If you have a folio (SD-2026-...) or want to start a quote, let me know.`

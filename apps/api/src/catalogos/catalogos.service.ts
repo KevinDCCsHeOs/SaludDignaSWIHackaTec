@@ -38,4 +38,15 @@ export class CatalogosService {
     if (!clinica) throw new NotFoundException(`Clínica ${id} no encontrada`);
     return clinica;
   }
+
+  actualizarEstatusClinica(
+    id: string,
+    estatus: EstatusClinica,
+    mensajeEstatus: string | null = null,
+  ): ClinicaDemo {
+    const clinica = this.obtenerClinicaPorId(id);
+    clinica.estatus = estatus;
+    clinica.mensajeEstatus = mensajeEstatus;
+    return clinica;
+  }
 }

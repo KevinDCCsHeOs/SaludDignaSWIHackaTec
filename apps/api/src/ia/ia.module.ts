@@ -4,6 +4,7 @@ import { CatalogosModule } from '../catalogos/catalogos.module';
 import { ContextoModule } from '../contexto/contexto.module';
 import { IdentidadModule } from '../identidad/identidad.module';
 import { OtpModule } from '../otp/otp.module';
+import { ServicioModule } from '../servicio/servicio.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { TramitesModule } from '../tramites/tramites.module';
 import { IaController } from './ia.controller';
@@ -20,6 +21,7 @@ import { VigenciasService } from './vigencias.service';
     TicketsModule,
     TramitesModule,
     CanalesModule,
+    ServicioModule,
   ],
   controllers: [IaController],
   providers: [ProveedorLlmService, IaService, VigenciasService],

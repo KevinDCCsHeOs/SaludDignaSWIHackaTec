@@ -271,6 +271,9 @@ async function errorDeRespuesta(res: Response): Promise<Error> {
   return new Error(mensajeDeError(data, res.status));
 }
 
+/** Se emite cuando el API rechaza el token de la sesión (401). */
+export const EVENTO_SESION_EXPIRADA = 'sd:sesion-expirada';
+
 async function pedirApi<T>(
   ruta: string,
   opciones: { method?: string; token?: string | null; body?: unknown; canal?: CanalAtencion } = {},
@@ -291,6 +294,10 @@ async function pedirApi<T>(
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // Token vencido (15 min) o revocado: avisar a la app para cerrar la sesión y volver al login
+    if (res.status === 401 && opciones.token && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA));
+    }
     throw new Error(mensajeDeError(data, res.status));
   }
   return data as T;

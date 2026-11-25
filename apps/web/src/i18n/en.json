@@ -41,7 +41,8 @@
     "accesosRapidos": "Quick demo accounts (fictional data)",
     "comoAna": "Sign in as Ana (Patient)",
     "comoAsesor": "Sign in as Carlos (Advisor)",
-    "comoAdmin": "Sign in as Admin"
+    "comoAdmin": "Sign in as Admin",
+    "sesionExpirada": "Your session expired or was closed. Sign in again with the same account or another one."
   },
   "cotizar": {
     "paso1": "1 · Exam",

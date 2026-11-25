@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { rutaInicioPorRol } from '../../lib/navegacion-rol';
 import { useAppWeb } from '../../lib/providers';
@@ -12,6 +12,11 @@ export default function LoginPage() {
   const [contrasena, setContrasena] = useState('DemoPaciente2026!');
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [expirada, setExpirada] = useState(false);
+
+  useEffect(() => {
+    setExpirada(new URLSearchParams(window.location.search).get('expirada') === '1');
+  }, []);
 
   const entrar = async (correo: string, clave: string) => {
     setError(null);
@@ -31,6 +36,12 @@ export default function LoginPage() {
       <section className="sd-card">
         <h1 style={{ marginTop: 0 }}>{t.login.titulo}</h1>
         <p className="sd-muted">{t.login.subtitulo}</p>
+
+        {expirada && !error && (
+          <div className="sd-banner-pendiente" role="status">
+            {t.login.sesionExpirada}
+          </div>
+        )}
 
         {error && (
           <div className="sd-alert-error" role="alert">

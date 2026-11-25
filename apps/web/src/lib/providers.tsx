@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { crearConfigSocketCliente } from '@salud-digna/ui';
 import { io, Socket } from 'socket.io-client';
 import { DiccionarioWeb, LocaleWeb, obtenerDiccionario } from '../i18n';
-import { apiWeb, UsuarioSesion, WS_URL } from './api';
+import { apiWeb, EVENTO_SESION_EXPIRADA, UsuarioSesion, WS_URL } from './api';
 
 interface ContextoAppWeb {
   token: string | null;
@@ -15,7 +15,7 @@ interface ContextoAppWeb {
   ultimoEventoRt: Record<string, unknown> | null;
   suscribirPacienteRt: (pacienteId: string) => void;
   iniciarSesion: (email: string, contrasena: string) => Promise<UsuarioSesion>;
-  cerrarSesion: () => void;
+  cerrarSesion: (motivo?: 'expirada') => void;
   cambiarIdioma: (nuevo: LocaleWeb) => void;
 }
 
@@ -111,16 +111,40 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return res.usuario;
   };
 
-  const cerrarSesion = () => {
+  const limpiarSesion = () => {
     setToken(null);
     setUsuario(null);
     guardarCookieRol(null);
+    queryClient.clear();
     try {
       window.sessionStorage.removeItem(CLAVE_STORAGE);
     } catch {
       // No-op
     }
   };
+
+  /**
+   * Al cerrar sesión se recarga en /login: el enrutador de Next guarda en caché la redirección del
+   * middleware hecha con la cookie de rol anterior, y sin recargar el botón "Iniciar sesión" volvía
+   * a la pantalla del rol anterior en vez de abrir el formulario.
+   */
+  const cerrarSesion = (motivo?: 'expirada') => {
+    limpiarSesion();
+    window.location.assign(motivo === 'expirada' ? '/login?expirada=1' : '/login');
+  };
+
+  // Token vencido o revocado (401): cerrar la sesión y volver al login con aviso
+  useEffect(() => {
+    const alExpirar = () => {
+      if (window.location.pathname === '/login') {
+        limpiarSesion();
+        return;
+      }
+      cerrarSesion('expirada');
+    };
+    window.addEventListener(EVENTO_SESION_EXPIRADA, alExpirar);
+    return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alExpirar);
+  }, []);
 
   const cambiarIdioma = (nuevo: LocaleWeb) => {
     setLocale(nuevo);

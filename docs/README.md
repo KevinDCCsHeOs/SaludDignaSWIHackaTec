@@ -16,7 +16,9 @@
 | [Escalabilidad y pruebas de carga](escalabilidad-y-carga.md) | Caché Redis, escenarios k6 (200 VU / 100 rps / 300 sockets), resultados y escalado horizontal | #37 |
 | [Accesibilidad y rendimiento web](accesibilidad-rendimiento.md) | Estándares WCAG 2.1 AA, Lighthouse CI y protocolo con lector de pantalla | #38 |
 | [Checklist pre-demo e imprimible](checklist-demo.md) | Verificación previa, guion de 4 canales y plan B para el día del demo | #39 |
-| Secuencias y flujo de datos | Diagramas de secuencia detallados entre canales | #41 (pendiente) |
+| [README principal y credenciales](../README.md) | Instalación en 5 comandos, variables de entorno, credenciales demo y pasos del demo | #40 |
+| [Secuencias y flujo de datos](secuencias-y-flujo-datos.md) | Diagramas Mermaid Web → WhatsApp → Call Center → App, resultados, facturación y relación ER | #41 |
+| [Guion del demo final (8 min)](guion-demo-final.md) | Guion minuto a minuto, roles del equipo, preguntas del jurado, Plan B y tabla de ensayos | #42 |
 
 ## Cómo editar los diagramas
 

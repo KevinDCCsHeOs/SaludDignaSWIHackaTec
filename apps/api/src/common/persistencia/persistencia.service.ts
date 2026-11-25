@@ -44,6 +44,10 @@ function esEstadoEntrega(valor: unknown): valor is EstadoEntregaMensaje {
   return valor === 'sent' || valor === 'delivered' || valor === 'read' || valor === 'failed';
 }
 
+function esErrorDeLlaveUnica(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
+
 function esErrorDeLlaveForanea(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003';
 }
@@ -367,6 +371,11 @@ export class PersistenciaService {
       canal: evento.canal,
       actorTipo: evento.actor.tipo,
       actorId: evento.actor.id,
+      rolActor: evento.rolActor ?? null,
+      ocurridoEn: new Date(evento.ocurridoEn ?? evento.timestamp),
+      versionTramite: evento.versionTramite ?? null,
+      correlacionId: evento.correlacionId ?? null,
+      llaveIdempotencia: evento.llaveIdempotencia ?? null,
       payload: comoJson(evento),
       creadoEn: new Date(evento.timestamp),
     };
@@ -379,6 +388,8 @@ export class PersistenciaService {
       });
       return true;
     } catch (error) {
+      // Misma llave de idempotencia ya guardada (reintento tras reinicio): no es un error
+      if (esErrorDeLlaveUnica(error)) return true;
       if (!esErrorDeLlaveForanea(error)) {
         this.logger.warn(`No se pudo guardar el evento ${evento.tipo}: ${describirError(error)}`);
         return false;

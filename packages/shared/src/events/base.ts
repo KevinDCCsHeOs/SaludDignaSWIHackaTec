@@ -22,6 +22,26 @@ export const ActorEventoSchema = z.object({
 export type ActorEvento = z.infer<typeof ActorEventoSchema>;
 
 /**
+ * Rol con el que actuó el actor respecto al paciente (traspaso v2, principio "actor ≠ paciente").
+ * Ej.: Ana actúa como `tutor` de Leo; el asesor actúa como `operador`.
+ */
+export const ROLES_ACTOR_EVENTO = [
+  'titular',
+  'tutor',
+  'cuidador',
+  'conyuge',
+  'representante',
+  'medico_referidor',
+  'bot',
+  'operador',
+  'supervisor',
+  'personal_clinico',
+  'sistema',
+] as const;
+
+export type RolActorEvento = (typeof ROLES_ACTOR_EVENTO)[number];
+
+/**
  * Sobre común obligatorio de todo evento omnicanal (#3).
  * Regla de versionado: cambios compatibles (campos opcionales nuevos) conservan `version`;
  * cambios incompatibles incrementan `version` (v2, v3, ...) y coexisten hasta migrar consumidores.
@@ -37,6 +57,19 @@ export const EventoBaseSchema = z.object({
   canal: CanalAtencionSchema,
   actor: ActorEventoSchema,
   timestamp: z.string().datetime({ offset: true }),
+  /**
+   * Hora del hecho (v2). Un vencimiento se registra a la hora del umbral, no a la hora en que se
+   * detectó. Si falta, se usa `timestamp`.
+   */
+  ocurridoEn: z.string().datetime({ offset: true }).optional(),
+  /** Rol con el que actuó el actor para este paciente (v2). */
+  rolActor: z.enum(ROLES_ACTOR_EVENTO).optional(),
+  /** Versión del trámite al momento del evento (canal propietario con versión, v2). */
+  versionTramite: z.number().int().nonnegative().optional(),
+  /** Agrupa los eventos de una misma atención o conversación (v2). */
+  correlacionId: z.string().min(1).max(64).optional(),
+  /** Llave única de la escritura: un reintento con la misma llave no duplica el evento (v2). */
+  llaveIdempotencia: z.string().min(1).max(128).optional(),
 });
 
 export type EventoBase = z.infer<typeof EventoBaseSchema>;
@@ -67,6 +100,10 @@ export const EMISORES_EVENTOS = [
   'tickets',
   'resultados',
   'whatsapp-bot',
+  'canales',
+  'sesiones',
+  'enrutamiento',
+  'seguimiento',
 ] as const;
 
 export type EmisorEvento = (typeof EMISORES_EVENTOS)[number];

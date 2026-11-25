@@ -120,11 +120,67 @@ export function traducirEventoATimeline(evento: EventoOmnicanal): EntradaTimelin
       accion = `Resultado liberado y notificado por ${evento.datos.canalNotificacion}`;
       estado = 'resultados_liberados';
       break;
+    // Traspaso v2
+    case 'sesion.aviso_inactividad':
+      accion = 'Aviso único de inactividad: el avance quedó guardado';
+      break;
+    case 'contexto.transferido':
+      accion = `El trámite pasó a ${evento.datos.canalNuevo}${evento.datos.canalAnterior ? ` (antes ${evento.datos.canalAnterior})` : ''}; el canal anterior deja de escribir`;
+      break;
+    case 'canal.propietario_liberado':
+      accion =
+        evento.datos.motivo === 'caducado'
+          ? `El permiso de ${evento.datos.canalLiberado} caducó: cualquier canal puede retomar`
+          : `${evento.datos.canalLiberado} liberó el trámite`;
+      break;
+    case 'cita.apartada':
+      accion = `Apartó horario (${evento.datos.fechaHora}) sin confirmar`;
+      break;
+    case 'cupo.liberado':
+      accion = 'El horario apartado se liberó; al retomar se propone otro sin pedir datos';
+      break;
+    case 'identidad.codigo_enviado':
+      accion = `Código de verificación enviado por ${evento.datos.canalEnvio}`;
+      break;
+    case 'identidad.codigo_vencido':
+      accion = 'El código de verificación venció; se pedirá uno nuevo antes de mostrar datos';
+      break;
+    case 'enrutamiento.escalado':
+      accion = `Ruta ${evento.datos.ruta} (riesgo ${evento.datos.riesgo}): atiende una persona`;
+      break;
+    case 'enrutamiento.atendido':
+      accion = `Ruta ${evento.datos.ruta} (riesgo ${evento.datos.riesgo}): autoservicio`;
+      break;
+    case 'acceso.consultado':
+      accion = `Consulta de ${evento.datos.recurso} por rol ${evento.datos.rolUsuario}`;
+      break;
+    case 'acceso.denegado':
+      accion = `Acceso denegado a ${evento.datos.recurso}: ${evento.datos.motivo}`;
+      break;
+    case 'resultado.valor_critico':
+      accion = 'Resultado con valor crítico: el bot queda bloqueado y una persona avisa';
+      break;
+    case 'incidente.registrado':
+      accion = `Incidente (${evento.datos.tipoIncidente}): ${evento.datos.descripcion}`;
+      break;
+    case 'entrega.retrasada':
+      accion = `${evento.datos.estudioNombre} se retrasa: nueva fecha ${evento.datos.fechaComprometida}`;
+      break;
+    case 'seguimiento.correo_enviado':
+      accion = `Correo de seguimiento enviado: ${evento.datos.motivo}`;
+      break;
+    case 'seguimiento.plantilla_enviada':
+      accion = `Plantilla de WhatsApp enviada (${evento.datos.plantilla})`;
+      break;
+    case 'compromiso.vencido':
+      accion = `Venció el compromiso de atención de la ruta ${evento.datos.ruta}`;
+      break;
   }
 
   return {
     eventId: evento.eventId,
-    fecha: evento.timestamp,
+    // Hora del hecho (v2): un vencimiento aparece a la hora del umbral, no a la de detección
+    fecha: evento.ocurridoEn ?? evento.timestamp,
     canal: evento.canal,
     icono: ICONO_POR_CANAL[evento.canal],
     actor: NOMBRE_ACTOR[evento.actor.tipo],

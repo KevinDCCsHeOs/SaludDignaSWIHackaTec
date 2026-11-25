@@ -518,6 +518,16 @@ model Evento {
   canal               CanalAtencion
   actorTipo           TipoActor     @map("actor_tipo")
   actorId             String?       @map("actor_id") @db.VarChar(64)
+  /// Rol con el que actuó el actor para este paciente (tutor, cuidador, operador…; traspaso v2).
+  rolActor            String?       @map("rol_actor") @db.VarChar(40)
+  /// Hora del hecho: un vencimiento se registra a la hora del umbral, no a la de detección (v2).
+  ocurridoEn          DateTime?     @map("ocurrido_en")
+  /// Versión del trámite al momento del evento (canal propietario con versión, v2).
+  versionTramite      Int?          @map("version_tramite")
+  /// Agrupa eventos de una misma atención o conversación (v2).
+  correlacionId       String?       @map("correlacion_id") @db.VarChar(64)
+  /// Llave única de la escritura: un reintento no duplica el evento (v2).
+  llaveIdempotencia   String?       @unique(map: "uq_eventos_llave_idempotencia") @map("llave_idempotencia") @db.VarChar(128)
   payload             Json
   /// NULL mientras esté pendiente de publicarse en Redis Streams (patrón outbox).
   publicadoEn         DateTime?     @map("publicado_en")
@@ -532,6 +542,7 @@ model Evento {
   @@index([tipo, creadoEn], map: "idx_eventos_tipo_fecha")
   @@index([canal, creadoEn], map: "idx_eventos_canal_fecha")
   @@index([publicadoEn, creadoEn], map: "idx_eventos_outbox_pendientes")
+  @@index([correlacionId], map: "idx_eventos_correlacion")
   @@map("eventos")
 }
 

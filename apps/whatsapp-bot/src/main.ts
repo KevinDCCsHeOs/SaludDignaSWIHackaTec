@@ -107,6 +107,10 @@ export function extraerEventosWebhookMeta(payload: PayloadWebhookMeta): {
   return { mensajes, estados };
 }
 
+function describirError(error: unknown): string {
+  return error instanceof Error ? error.message : 'error desconocido';
+}
+
 export function crearServidorBot(opciones: OpcionesServidorBot = {}) {
   const api = opciones.api ?? new ClienteHttpApiBot();
   const meta = opciones.meta ?? new ClienteMetaCloudApi();
@@ -145,6 +149,7 @@ export function crearServidorBot(opciones: OpcionesServidorBot = {}) {
       const firma = req.headers['x-hub-signature-256'] as string | undefined;
 
       if (!verificarFirmaMeta(rawBody, firma, appSecret)) {
+        console.error('[whatsapp-bot] Webhook rechazado: firma inválida (revisa WA_APP_SECRET)');
         res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Firma X-Hub-Signature-256 inválida' }));
         return;
@@ -170,10 +175,20 @@ export function crearServidorBot(opciones: OpcionesServidorBot = {}) {
               continue;
             }
             sesiones.marcarProcesado(msg.messageId);
-            await dialogo.procesarMensajeEntrante(msg);
+            try {
+              await dialogo.procesarMensajeEntrante(msg);
+            } catch (error) {
+              // Registrar solo el motivo técnico (p. ej. "API /otp/solicitar respondió 401"), sin datos del paciente
+              console.error(
+                `[whatsapp-bot] Error al procesar un mensaje: ${describirError(error)}`,
+              );
+            }
           }
-        } catch {
+        } catch (error) {
           // Nunca tumbar el servidor del webhook por un payload malformado
+          console.error(
+            `[whatsapp-bot] Payload de webhook no procesable: ${describirError(error)}`,
+          );
         }
       })();
       pendientesCola.push(tarea);

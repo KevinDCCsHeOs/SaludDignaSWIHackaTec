@@ -18,6 +18,29 @@ export interface MensajeSalienteWa {
   simulado: boolean;
 }
 
+/**
+ * Meta entrega los números móviles de México en el webhook con el prefijo obsoleto `521`
+ * (13 dígitos), pero rechaza enviar a ese formato (error 131030 con números de prueba).
+ * Para responder hay que usar `52` + 10 dígitos.
+ */
+export function telefonoParaEnvioMeta(telefono: string): string {
+  const digitos = telefono.replace(/\D/g, '');
+  if (digitos.length === 13 && digitos.startsWith('521')) {
+    return `52${digitos.slice(3)}`;
+  }
+  return digitos;
+}
+
+interface RespuestaGraphMeta {
+  messages?: Array<{ id: string }>;
+  error?: {
+    code?: number;
+    type?: string;
+    error_subcode?: number;
+    error_data?: { details?: string };
+  };
+}
+
 export type PlantillaOficialWa =
   'sd_codigo_verificacion' | 'sd_recordatorio_cita' | 'sd_tramite_pendiente';
 
@@ -68,9 +91,21 @@ export class ClienteMetaCloudApi {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ messaging_product: 'whatsapp', to: para, ...payload }),
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: telefonoParaEnvioMeta(para),
+          ...payload,
+        }),
       });
-      const json = (await resp.json().catch(() => ({}))) as { messages?: Array<{ id: string }> };
+      const json = (await resp.json().catch(() => ({}))) as RespuestaGraphMeta;
+      if (!resp.ok || json.error) {
+        // Solo códigos de error: nunca el teléfono, el texto del mensaje ni el token (LFPDPPP).
+        console.error(
+          `[whatsapp-bot] Meta rechazó el envío (${tipo}): HTTP ${resp.status}, ` +
+            `código ${json.error?.code ?? 'n/d'}, subcódigo ${json.error?.error_subcode ?? 'n/d'}, ` +
+            `tipo ${json.error?.type ?? 'n/d'}`,
+        );
+      }
       const registro: MensajeSalienteWa = {
         id: json.messages?.[0]?.id ?? idSimulado,
         para,

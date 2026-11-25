@@ -54,6 +54,23 @@ Todo cambio de estado en la plataforma emite un evento con el patrón `dominio.a
 | `ticket.sla_vencido` | v1 | `tickets` | `realtime`, `notificaciones`, `metricas` | Alerta emitida por el job de SLA cuando un ticket excede su tiempo objetivo. |
 | `ticket.cerrado` | v1 | `tickets` | `timeline`, `realtime`, `metricas` | El ticket queda resuelto y cerrado con registro de tiempo de atención. |
 | `resultado.liberado` | v1 | `resultados` | `timeline`, `realtime`, `notificaciones`, `metricas`, `auditoria` | Tras revisión técnica y validación médica, el resultado queda visible para el paciente. |
+| `sesion.aviso_inactividad` | v1 | `sesiones` | `timeline`, `metricas` | Único aviso de inactividad de la conversación: ya anuncia el cierre y cómo retomar (traspaso v2, sección 5). |
+| `contexto.transferido` | v1 | `canales` | `timeline`, `realtime`, `metricas`, `auditoria` | El trámite cambia de canal propietario (p. ej. WhatsApp → llamada); el canal anterior deja de escribir. |
+| `canal.propietario_liberado` | v1 | `canales` | `timeline`, `realtime` | El canal propietario deja el trámite (al colgar o por caducidad): cualquier canal puede retomarlo. |
+| `cita.apartada` | v1 | `tramites` | `timeline`, `realtime` | Se aparta un horario sin confirmar; se libera si vence el plazo. |
+| `cupo.liberado` | v1 | `tramites` | `timeline`, `realtime`, `metricas` | El horario apartado venció sin confirmar; al retomar se propone otro sin pedir datos. |
+| `identidad.codigo_enviado` | v1 | `otp` | `timeline`, `auditoria` | Se envió un código de un solo uso; nunca incluye el código. |
+| `identidad.codigo_vencido` | v1 | `sesiones` | `timeline`, `auditoria` | El código venció sin usarse; antes de mostrar datos se pide uno nuevo. |
+| `enrutamiento.escalado` | v1 | `enrutamiento` | `timeline`, `realtime`, `tickets`, `metricas`, `auditoria` | La ruta por riesgo decidió que atienda una persona (Compartir, Escalar o Evitar). |
+| `enrutamiento.atendido` | v1 | `enrutamiento` | `metricas` | La ruta por riesgo permite resolver en autoservicio o con el bot (Aceptar o Reducir). |
+| `acceso.consultado` | v1 | `canales` | `auditoria` | Alguien consultó el contexto de un paciente (bitácora de accesos, sin el contenido). |
+| `acceso.denegado` | v1 | `canales` | `auditoria`, `metricas` | Se negó una consulta por falta de verificación o de permiso. |
+| `resultado.valor_critico` | v1 | `resultados` | `timeline`, `realtime`, `tickets`, `auditoria` | Un resultado con valor crítico: el bot queda bloqueado y una persona avisa (sin contenido en el evento). |
+| `incidente.registrado` | v1 | `enrutamiento` | `timeline`, `realtime`, `tickets`, `auditoria` | Emergencia o incidente derivado a una persona; el trámite se pausa sin perder lo avanzado. |
+| `entrega.retrasada` | v1 | `resultados` | `timeline`, `realtime`, `notificaciones` | Un estudio de la orden no estará en la fecha comprometida (INC-O4-05): se informa la nueva fecha. |
+| `seguimiento.correo_enviado` | v1 | `seguimiento` | `timeline`, `metricas` | Correo de seguimiento sin datos clínicos, con enlace personal que vence y pide código. |
+| `seguimiento.plantilla_enviada` | v1 | `seguimiento` | `timeline`, `metricas` | Plantilla de WhatsApp enviada fuera de la ventana de 24 h (con costo). |
+| `compromiso.vencido` | v1 | `sesiones` | `timeline`, `realtime`, `tickets`, `metricas` | Venció el compromiso de atención humana de la ruta (p. ej. una persona en menos de 2 min). |
 
 ## 4. Ejemplos de payload validados
 
@@ -652,6 +669,550 @@ Todo cambio de estado en la plataforma emite un evento con el patrón `dominio.a
     "estudioId": "est_us_abd",
     "validadoPorId": "usr_med_01",
     "canalNotificacion": "whatsapp"
+  }
+}
+```
+
+### `sesion.aviso_inactividad` (v1)
+
+- **Descripción:** Único aviso de inactividad de la conversación: ya anuncia el cierre y cómo retomar (traspaso v2, sección 5).
+- **Emisor:** `sesiones`
+- **Consumidores:** `timeline`, `metricas`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000001",
+  "tipo": "sesion.aviso_inactividad",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "sistema",
+    "id": "temporizadores"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "sistema",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "sesion.aviso_inactividad:trm_456:1",
+  "datos": {
+    "canalConversacion": "whatsapp",
+    "inactivoSegundos": 30,
+    "cierreEnSegundos": 30,
+    "perfilPlazos": "exposicion"
+  }
+}
+```
+
+### `contexto.transferido` (v1)
+
+- **Descripción:** El trámite cambia de canal propietario (p. ej. WhatsApp → llamada); el canal anterior deja de escribir.
+- **Emisor:** `canales`
+- **Consumidores:** `timeline`, `realtime`, `metricas`, `auditoria`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000002",
+  "tipo": "contexto.transferido",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "call_center",
+  "actor": {
+    "tipo": "asesor",
+    "id": "usr_asesor_01"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "operador",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "contexto.transferido:trm_456:2",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "canalAnterior": "whatsapp",
+    "canalNuevo": "call_center",
+    "versionNueva": 4,
+    "propietarioHasta": "2026-11-24T15:02:20Z"
+  }
+}
+```
+
+### `canal.propietario_liberado` (v1)
+
+- **Descripción:** El canal propietario deja el trámite (al colgar o por caducidad): cualquier canal puede retomarlo.
+- **Emisor:** `canales`
+- **Consumidores:** `timeline`, `realtime`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000003",
+  "tipo": "canal.propietario_liberado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "call_center",
+  "actor": {
+    "tipo": "sistema",
+    "id": "temporizadores"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "sistema",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "canal.propietario_liberado:trm_456:3",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "canalLiberado": "call_center",
+    "motivo": "caducado"
+  }
+}
+```
+
+### `cita.apartada` (v1)
+
+- **Descripción:** Se aparta un horario sin confirmar; se libera si vence el plazo.
+- **Emisor:** `tramites`
+- **Consumidores:** `timeline`, `realtime`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000004",
+  "tipo": "cita.apartada",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "paciente",
+    "id": "pac_ana_demo"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "titular",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "cita.apartada:trm_456:4",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "clinicaId": "cli_pue_capu",
+    "fechaHora": "2026-11-26T15:00:00Z",
+    "apartadoHasta": "2026-11-24T14:12:00Z"
+  }
+}
+```
+
+### `cupo.liberado` (v1)
+
+- **Descripción:** El horario apartado venció sin confirmar; al retomar se propone otro sin pedir datos.
+- **Emisor:** `tramites`
+- **Consumidores:** `timeline`, `realtime`, `metricas`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000005",
+  "tipo": "cupo.liberado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "sistema",
+    "id": "temporizadores"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "sistema",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "cupo.liberado:trm_456:5",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "clinicaId": "cli_pue_capu",
+    "fechaHora": "2026-11-26T15:00:00Z"
+  }
+}
+```
+
+### `identidad.codigo_enviado` (v1)
+
+- **Descripción:** Se envió un código de un solo uso; nunca incluye el código.
+- **Emisor:** `otp`
+- **Consumidores:** `timeline`, `auditoria`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000006",
+  "tipo": "identidad.codigo_enviado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "sistema",
+    "id": "otp"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "sistema",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "identidad.codigo_enviado:trm_456:6",
+  "datos": {
+    "canalEnvio": "whatsapp",
+    "venceEn": "2026-11-24T14:15:00Z"
+  }
+}
+```
+
+### `identidad.codigo_vencido` (v1)
+
+- **Descripción:** El código venció sin usarse; antes de mostrar datos se pide uno nuevo.
+- **Emisor:** `sesiones`
+- **Consumidores:** `timeline`, `auditoria`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000007",
+  "tipo": "identidad.codigo_vencido",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "sistema",
+    "id": "temporizadores"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "sistema",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "identidad.codigo_vencido:trm_456:7",
+  "datos": {
+    "canalEnvio": "whatsapp"
+  }
+}
+```
+
+### `enrutamiento.escalado` (v1)
+
+- **Descripción:** La ruta por riesgo decidió que atienda una persona (Compartir, Escalar o Evitar).
+- **Emisor:** `enrutamiento`
+- **Consumidores:** `timeline`, `realtime`, `tickets`, `metricas`, `auditoria`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000008",
+  "tipo": "enrutamiento.escalado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "asesor_ia",
+    "id": "bot_whatsapp"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "bot",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "enrutamiento.escalado:trm_456:8",
+  "datos": {
+    "solicitud": "ree",
+    "riesgo": 8,
+    "ruta": "Evitar",
+    "motivos": [
+      "acceso de un tercero sin autorización"
+    ],
+    "compromisoSegundos": 120
+  }
+}
+```
+
+### `enrutamiento.atendido` (v1)
+
+- **Descripción:** La ruta por riesgo permite resolver en autoservicio o con el bot (Aceptar o Reducir).
+- **Emisor:** `enrutamiento`
+- **Consumidores:** `metricas`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000009",
+  "tipo": "enrutamiento.atendido",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "web",
+  "actor": {
+    "tipo": "asesor_ia",
+    "id": "bot_web"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "bot",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "enrutamiento.atendido:trm_456:9",
+  "datos": {
+    "solicitud": "cot",
+    "riesgo": 4,
+    "ruta": "Aceptar"
+  }
+}
+```
+
+### `acceso.consultado` (v1)
+
+- **Descripción:** Alguien consultó el contexto de un paciente (bitácora de accesos, sin el contenido).
+- **Emisor:** `canales`
+- **Consumidores:** `auditoria`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000010",
+  "tipo": "acceso.consultado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "call_center",
+  "actor": {
+    "tipo": "asesor",
+    "id": "usr_asesor_01"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "operador",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "acceso.consultado:trm_456:10",
+  "datos": {
+    "recurso": "contexto",
+    "rolUsuario": "asesor"
+  }
+}
+```
+
+### `acceso.denegado` (v1)
+
+- **Descripción:** Se negó una consulta por falta de verificación o de permiso.
+- **Emisor:** `canales`
+- **Consumidores:** `auditoria`, `metricas`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000011",
+  "tipo": "acceso.denegado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "asesor_ia",
+    "id": "bot_whatsapp"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "bot",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "acceso.denegado:trm_456:11",
+  "datos": {
+    "recurso": "contexto",
+    "motivo": "Sin verificación OTP vigente en el canal"
+  }
+}
+```
+
+### `resultado.valor_critico` (v1)
+
+- **Descripción:** Un resultado con valor crítico: el bot queda bloqueado y una persona avisa (sin contenido en el evento).
+- **Emisor:** `resultados`
+- **Consumidores:** `timeline`, `realtime`, `tickets`, `auditoria`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000012",
+  "tipo": "resultado.valor_critico",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "web",
+  "actor": {
+    "tipo": "medico",
+    "id": "usr_med_01"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "personal_clinico",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "resultado.valor_critico:trm_456:12",
+  "datos": {
+    "resultadoId": "res_321",
+    "estudioId": "est_us_abd"
+  }
+}
+```
+
+### `incidente.registrado` (v1)
+
+- **Descripción:** Emergencia o incidente derivado a una persona; el trámite se pausa sin perder lo avanzado.
+- **Emisor:** `enrutamiento`
+- **Consumidores:** `timeline`, `realtime`, `tickets`, `auditoria`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000013",
+  "tipo": "incidente.registrado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "asesor_ia",
+    "id": "bot_whatsapp"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "bot",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "incidente.registrado:trm_456:13",
+  "datos": {
+    "tipoIncidente": "emergencia",
+    "descripcion": "Síntomas de alarma: se indicó llamar al 911 y se avisó a un supervisor"
+  }
+}
+```
+
+### `entrega.retrasada` (v1)
+
+- **Descripción:** Un estudio de la orden no estará en la fecha comprometida (INC-O4-05): se informa la nueva fecha.
+- **Emisor:** `resultados`
+- **Consumidores:** `timeline`, `realtime`, `notificaciones`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000014",
+  "tipo": "entrega.retrasada",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "web",
+  "actor": {
+    "tipo": "sistema",
+    "id": "laboratorio"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "sistema",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "entrega.retrasada:trm_456:14",
+  "datos": {
+    "ordenFolio": "SD-2026-000123",
+    "estudioNombre": "Perfil tiroideo",
+    "fechaComprometida": "2026-11-27T18:00:00Z",
+    "causa": "Retraso del proveedor externo de análisis"
+  }
+}
+```
+
+### `seguimiento.correo_enviado` (v1)
+
+- **Descripción:** Correo de seguimiento sin datos clínicos, con enlace personal que vence y pide código.
+- **Emisor:** `seguimiento`
+- **Consumidores:** `timeline`, `metricas`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000015",
+  "tipo": "seguimiento.correo_enviado",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "email",
+  "actor": {
+    "tipo": "asesor",
+    "id": "usr_asesor_01"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "operador",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "seguimiento.correo_enviado:trm_456:15",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "motivo": "Invitar a retomar donde se quedó",
+    "enlaceVenceEn": "2026-11-27T14:00:00Z"
+  }
+}
+```
+
+### `seguimiento.plantilla_enviada` (v1)
+
+- **Descripción:** Plantilla de WhatsApp enviada fuera de la ventana de 24 h (con costo).
+- **Emisor:** `seguimiento`
+- **Consumidores:** `timeline`, `metricas`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000016",
+  "tipo": "seguimiento.plantilla_enviada",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "whatsapp",
+  "actor": {
+    "tipo": "asesor",
+    "id": "usr_asesor_01"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "operador",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "seguimiento.plantilla_enviada:trm_456:16",
+  "datos": {
+    "folio": "SD-2026-000123",
+    "plantilla": "sd_tramite_pendiente"
+  }
+}
+```
+
+### `compromiso.vencido` (v1)
+
+- **Descripción:** Venció el compromiso de atención humana de la ruta (p. ej. una persona en menos de 2 min).
+- **Emisor:** `sesiones`
+- **Consumidores:** `timeline`, `realtime`, `tickets`, `metricas`
+
+```json
+{
+  "eventId": "20000000-0000-4000-8000-000000000017",
+  "tipo": "compromiso.vencido",
+  "version": 1,
+  "pacienteId": "pac_ana_demo",
+  "tramiteId": "trm_456",
+  "canal": "call_center",
+  "actor": {
+    "tipo": "sistema",
+    "id": "temporizadores"
+  },
+  "timestamp": "2026-11-24T14:10:00Z",
+  "ocurridoEn": "2026-11-24T14:10:00Z",
+  "rolActor": "sistema",
+  "versionTramite": 3,
+  "correlacionId": "conv_wa_ana_01",
+  "llaveIdempotencia": "compromiso.vencido:trm_456:17",
+  "datos": {
+    "ruta": "Escalar",
+    "compromisoSegundos": 900
   }
 }
 ```

@@ -53,6 +53,12 @@ export interface TramiteDto {
     pendientes: string[];
     ultimoCanal: CanalAtencion;
     actualizadoEn: string;
+    /** Versión del trámite (v2): se envía al escribir para detectar cambios de otro canal. */
+    versionTramite?: number;
+    /** Canal propietario con caducidad (v2). */
+    propietario?: PropietarioTramiteDto | null;
+    /** Horario apartado sin confirmar (v2). */
+    cupo?: { apartadoHasta: string; liberadoEn: string | null } | null;
   };
   cita: {
     id: string;
@@ -64,9 +70,26 @@ export interface TramiteDto {
   actualizadoEn: string;
 }
 
+export interface PropietarioTramiteDto {
+  canal: CanalAtencion;
+  actorId: string;
+  hasta: string;
+  exclusivo: boolean;
+}
+
+export interface OrdenEstudiosDto {
+  tramiteId: string;
+  folio: string;
+  total: number;
+  liberados: number;
+  enlaceBloqueado: boolean;
+  estudios: Array<{ estudioNombre: string; estado: string }>;
+}
+
 export interface EntradaTimelineDto {
   eventId: string;
   fecha: string;
+  tipoEvento?: string;
   canal: CanalAtencion;
   icono: string;
   actor: string;
@@ -343,6 +366,41 @@ export const apiWeb = {
       fechaHora?: string;
     },
   ) => pedirApi<TramiteDto>(`/tramites/${tramiteId}/avanzar`, { method: 'POST', token, body }),
+
+  /** El asesor atiende la llamada: toma el trámite en exclusiva (canal propietario, v2). */
+  atenderLlamada: (token: string, tramiteId: string, versionEsperada?: number) =>
+    pedirApi<TramiteDto>(`/tramites/${tramiteId}/propietario`, {
+      method: 'POST',
+      token,
+      canal: 'call_center',
+      body: versionEsperada ? { versionEsperada } : {},
+    }),
+
+  renovarLlamada: (token: string, tramiteId: string) =>
+    pedirApi<TramiteDto>(`/tramites/${tramiteId}/propietario/renovar`, {
+      method: 'POST',
+      token,
+      canal: 'call_center',
+    }),
+
+  colgarLlamada: (token: string, tramiteId: string) =>
+    pedirApi<TramiteDto>(`/tramites/${tramiteId}/propietario`, {
+      method: 'DELETE',
+      token,
+      canal: 'call_center',
+    }),
+
+  obtenerPlazos: (token: string) =>
+    pedirApi<{ perfil: 'produccion' | 'exposicion'; plazos: Record<string, number> }>('/plazos', {
+      token,
+    }),
+
+  /** Estado de los estudios sin valores clínicos (el operador ve estados, no resultados). */
+  estadoEstudios: (token: string, pacienteId: string) =>
+    pedirApi<{ pacienteId: string; ordenes: OrdenEstudiosDto[] }>(
+      `/resultados/estado-estudios/${pacienteId}`,
+      { token },
+    ),
 
   retomarTramite: (token: string, tramiteId: string, canal: CanalAtencion) =>
     pedirApi<TramiteDto>(`/tramites/${tramiteId}/retomar`, {

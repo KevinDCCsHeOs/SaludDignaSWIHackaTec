@@ -1,0 +1,1218 @@
+[
+  {
+    "tramite": "T-1042",
+    "persona": "P-1001",
+    "nombre": "Ana López",
+    "vinculo": "Titular · teléfono verificado",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ag",
+    "proceso": "Agendar ultrasonido de abdomen",
+    "pasos": [
+      "Cotizar",
+      "Identificarse",
+      "Elegir horario",
+      "Pagar",
+      "Confirmación"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Cotizar",
+        "canal": "web",
+        "horas_atras": 26
+      },
+      {
+        "paso": "Identificarse",
+        "canal": "wa",
+        "horas_atras": 25.2
+      },
+      {
+        "paso": "Elegir horario",
+        "canal": "wa",
+        "horas_atras": 25
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": "Eligió martes 8:00 en Clínica Centro; el horario apartado se liberó",
+    "sintetico": false,
+    "avance": 60,
+    "prioridad": [
+      4,
+      "Media"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1051",
+    "persona": "P-1002",
+    "nombre": "Leo Martínez López",
+    "vinculo": "Menor · tutora: Ana López (V2)",
+    "gestiona": "Ana López",
+    "vulnerabilidad": "Menor de edad",
+    "plantilla": "res",
+    "proceso": "Resultados de la orden O-5521 (3 estudios)",
+    "pasos": [
+      "Toma de muestras",
+      "Biometría hemática",
+      "Química sanguínea",
+      "Perfil tiroideo",
+      "Enlace de resultados"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Toma de muestras",
+        "canal": "cli",
+        "horas_atras": 50
+      },
+      {
+        "paso": "Biometría hemática",
+        "canal": "sis",
+        "horas_atras": 30
+      },
+      {
+        "paso": "Química sanguínea",
+        "canal": "sis",
+        "horas_atras": 28
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": {
+      "numero": "O-5521",
+      "estudios": [
+        {
+          "estudio": "Biometría hemática",
+          "estado": "liberado",
+          "liberado_horas_atras": 30,
+          "causa": null,
+          "fecha_comprometida": null
+        },
+        {
+          "estudio": "Química sanguínea",
+          "estado": "liberado",
+          "liberado_horas_atras": 28,
+          "causa": null,
+          "fecha_comprometida": null
+        },
+        {
+          "estudio": "Perfil tiroideo",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Proveedor externo · INC-O4-05",
+          "fecha_comprometida": "jueves 12:00"
+        }
+      ]
+    },
+    "nota": "Ana escribió hace 36 min: \"¿por qué no puedo ver los resultados de Leo?\"",
+    "sintetico": false,
+    "avance": 60,
+    "prioridad": [
+      7,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo con fecha del estudio pendiente",
+    "siguiente_accion": "Informar el estudio pendiente y su fecha"
+  },
+  {
+    "tramite": "T-1047",
+    "persona": "P-1005",
+    "nombre": "Pedro Ramírez (Don Pedro)",
+    "vinculo": "78 años · cuidadora: Ana López (V2)",
+    "gestiona": "Ana López",
+    "vulnerabilidad": "Adulto mayor",
+    "plantilla": "mue",
+    "proceso": "Muestra rechazada por falta de ayuno",
+    "pasos": [
+      "Aviso de rechazo",
+      "Reagendar",
+      "Preparación confirmada",
+      "Nueva toma",
+      "Resultados"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Aviso de rechazo",
+        "canal": "wa",
+        "horas_atras": 48
+      },
+      {
+        "paso": "Reagendar",
+        "canal": "tel",
+        "horas_atras": 47
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "sin_registro",
+    "orden": null,
+    "nota": "Nueva toma el jueves 7:30; falta confirmar la preparación",
+    "sintetico": false,
+    "avance": 40,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Llamada",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1033",
+    "persona": "P-1004",
+    "nombre": "Raúl Hernández",
+    "vinculo": "Titular · esposo de Ana (V1)",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "fac",
+    "proceso": "Factura del estudio del 18 de nov.",
+    "pasos": [
+      "Solicitud",
+      "Datos fiscales",
+      "Corrección",
+      "Factura emitida"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Solicitud",
+        "canal": "web",
+        "horas_atras": 30
+      },
+      {
+        "paso": "Datos fiscales",
+        "canal": "web",
+        "horas_atras": 29.5
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "rebotado",
+    "orden": null,
+    "nota": "Espera al especialista de facturación; el correo registrado rebotó",
+    "sintetico": false,
+    "avance": 50,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Llamada",
+    "siguiente_accion": "Destrabar el proceso interno"
+  },
+  {
+    "tramite": "T-1058",
+    "persona": "P-1003",
+    "nombre": "Sofía Martínez López",
+    "vinculo": "17 años · app propia · tutora: Ana",
+    "gestiona": null,
+    "vulnerabilidad": "Menor de edad",
+    "plantilla": "ag",
+    "proceso": "Agendar química sanguínea",
+    "pasos": [
+      "Cotizar",
+      "Identificarse",
+      "Elegir horario",
+      "Pagar",
+      "Confirmación"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Cotizar",
+        "canal": "app",
+        "horas_atras": 72
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": "Cotizó en la app y no se identificó",
+    "sintetico": false,
+    "avance": 20,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Aviso en la app",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1061",
+    "persona": "—",
+    "nombre": "Número familiar 55 1234 5678",
+    "vinculo": "Teléfono vinculado a 3 personas",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ree",
+    "proceso": "Reenvío de resultados",
+    "pasos": [
+      "Solicitud",
+      "Identificar persona",
+      "Código",
+      "Envío con acuse"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Solicitud",
+        "canal": "wa",
+        "horas_atras": 5
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "sin_registro",
+    "orden": null,
+    "nota": "No respondió para quién es el trámite; no se muestran datos",
+    "sintetico": false,
+    "avance": 25,
+    "prioridad": [
+      1,
+      "Baja"
+    ],
+    "canal_sugerido": "Llamada",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1064",
+    "persona": "P-1010",
+    "nombre": "Lucía Gómez",
+    "vinculo": "Registro nuevo (V0)",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ag",
+    "proceso": "Agendar mastografía",
+    "pasos": [
+      "Cotizar",
+      "Identificarse",
+      "Elegir horario",
+      "Pagar",
+      "Confirmación"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Cotizar",
+        "canal": "web",
+        "horas_atras": 3
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": "No validó el código de un solo uso",
+    "sintetico": false,
+    "avance": 20,
+    "prioridad": [
+      1,
+      "Baja"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1029",
+    "persona": "P-1011",
+    "nombre": "Carmen Ruiz",
+    "vinculo": "Paciente de la Dra. Méndez (M-2001)",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ord",
+    "proceso": "Orden electrónica de ultrasonido",
+    "pasos": [
+      "Orden emitida",
+      "Invitación enviada",
+      "Agendar",
+      "Pagar",
+      "Atención"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Orden emitida",
+        "canal": "med",
+        "horas_atras": 96
+      },
+      {
+        "paso": "Invitación enviada",
+        "canal": "wa",
+        "horas_atras": 96
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": "Recibió la invitación de su médica y no ha agendado",
+    "sintetico": false,
+    "avance": 40,
+    "prioridad": [
+      4,
+      "Media"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1100",
+    "persona": "P-2000",
+    "nombre": "Jorge Pérez",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ag",
+    "proceso": "Agendar estudio",
+    "pasos": [
+      "Cotizar",
+      "Identificarse",
+      "Elegir horario",
+      "Pagar",
+      "Confirmación"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Cotizar",
+        "canal": "web",
+        "horas_atras": 42
+      },
+      {
+        "paso": "Identificarse",
+        "canal": "wa",
+        "horas_atras": 27
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 40,
+    "prioridad": [
+      2,
+      "Baja"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1101",
+    "persona": "P-2001",
+    "nombre": "María Fernanda Cruz",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ree",
+    "proceso": "Reenvío de resultados",
+    "pasos": [
+      "Solicitud",
+      "Identificar persona",
+      "Código",
+      "Envío con acuse"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Solicitud",
+        "canal": "wa",
+        "horas_atras": 95
+      },
+      {
+        "paso": "Identificar persona",
+        "canal": "wa",
+        "horas_atras": 90
+      },
+      {
+        "paso": "Código",
+        "canal": "wa",
+        "horas_atras": 73
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 75,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1102",
+    "persona": "P-2002",
+    "nombre": "Luis Ángel Torres",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ag",
+    "proceso": "Agendar estudio",
+    "pasos": [
+      "Cotizar",
+      "Identificarse",
+      "Elegir horario",
+      "Pagar",
+      "Confirmación"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Cotizar",
+        "canal": "web",
+        "horas_atras": 122
+      },
+      {
+        "paso": "Identificarse",
+        "canal": "wa",
+        "horas_atras": 105
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 40,
+    "prioridad": [
+      4,
+      "Media"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1103",
+    "persona": "P-2003",
+    "nombre": "Guadalupe Sánchez",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ret",
+    "proceso": "Resultado retrasado",
+    "pasos": [
+      "Aviso de retraso",
+      "Nueva fecha",
+      "Resultado liberado",
+      "Enlace enviado"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Aviso de retraso",
+        "canal": "wa",
+        "horas_atras": 123
+      },
+      {
+        "paso": "Nueva fecha",
+        "canal": "wa",
+        "horas_atras": 104
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 50,
+    "prioridad": [
+      8,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Destrabar el proceso interno"
+  },
+  {
+    "tramite": "T-1104",
+    "persona": "P-2004",
+    "nombre": "Rosa Elena Díaz",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": "Adulto mayor",
+    "plantilla": "res",
+    "proceso": "Resultados de una orden",
+    "pasos": [
+      "Toma de muestras",
+      "Examen general de orina",
+      "Urocultivo",
+      "Creatinina",
+      "Enlace de resultados"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Toma de muestras",
+        "canal": "cli",
+        "horas_atras": 119
+      },
+      {
+        "paso": "Examen general de orina",
+        "canal": "sis",
+        "horas_atras": 107
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": {
+      "numero": "O-5604",
+      "estudios": [
+        {
+          "estudio": "Examen general de orina",
+          "estado": "liberado",
+          "liberado_horas_atras": 107,
+          "causa": null,
+          "fecha_comprometida": null
+        },
+        {
+          "estudio": "Urocultivo",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Muestra insuficiente · INC-O1-05",
+          "fecha_comprometida": "jueves 12:00"
+        },
+        {
+          "estudio": "Creatinina",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Proveedor externo · INC-O4-05",
+          "fecha_comprometida": "viernes 10:00"
+        }
+      ]
+    },
+    "nota": null,
+    "sintetico": true,
+    "avance": 40,
+    "prioridad": [
+      8,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo con fecha del estudio pendiente",
+    "siguiente_accion": "Informar el estudio pendiente y su fecha"
+  },
+  {
+    "tramite": "T-1105",
+    "persona": "P-2005",
+    "nombre": "Miguel Ortega",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ag",
+    "proceso": "Agendar estudio",
+    "pasos": [
+      "Cotizar",
+      "Identificarse",
+      "Elegir horario",
+      "Pagar",
+      "Confirmación"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Cotizar",
+        "canal": "web",
+        "horas_atras": 96
+      },
+      {
+        "paso": "Identificarse",
+        "canal": "wa",
+        "horas_atras": 77
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 40,
+    "prioridad": [
+      4,
+      "Media"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1106",
+    "persona": "P-2006",
+    "nombre": "Daniela Flores",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "res",
+    "proceso": "Resultados de una orden",
+    "pasos": [
+      "Toma de muestras",
+      "Glucosa",
+      "Perfil de lípidos",
+      "Hemoglobina glucosilada",
+      "Enlace de resultados"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Toma de muestras",
+        "canal": "cli",
+        "horas_atras": 51
+      },
+      {
+        "paso": "Glucosa",
+        "canal": "sis",
+        "horas_atras": 40
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": {
+      "numero": "O-5606",
+      "estudios": [
+        {
+          "estudio": "Glucosa",
+          "estado": "liberado",
+          "liberado_horas_atras": 40,
+          "causa": null,
+          "fecha_comprometida": null
+        },
+        {
+          "estudio": "Perfil de lípidos",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Retraso de mensajería · INC-O4-06",
+          "fecha_comprometida": "jueves 12:00"
+        },
+        {
+          "estudio": "Hemoglobina glucosilada",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Muestra insuficiente · INC-O1-05",
+          "fecha_comprometida": "jueves 12:00"
+        }
+      ]
+    },
+    "nota": null,
+    "sintetico": true,
+    "avance": 40,
+    "prioridad": [
+      4,
+      "Media"
+    ],
+    "canal_sugerido": "Correo con fecha del estudio pendiente",
+    "siguiente_accion": "Informar el estudio pendiente y su fecha"
+  },
+  {
+    "tramite": "T-1107",
+    "persona": "P-2007",
+    "nombre": "Héctor Morales",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "mue",
+    "proceso": "Muestra rechazada",
+    "pasos": [
+      "Aviso de rechazo",
+      "Reagendar",
+      "Preparación confirmada",
+      "Nueva toma",
+      "Resultados"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Aviso de rechazo",
+        "canal": "wa",
+        "horas_atras": 80
+      },
+      {
+        "paso": "Reagendar",
+        "canal": "tel",
+        "horas_atras": 68
+      },
+      {
+        "paso": "Preparación confirmada",
+        "canal": "wa",
+        "horas_atras": 62
+      },
+      {
+        "paso": "Nueva toma",
+        "canal": "cli",
+        "horas_atras": 47
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 80,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1108",
+    "persona": "P-2008",
+    "nombre": "Patricia Vargas",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": "Adulto mayor",
+    "plantilla": "ree",
+    "proceso": "Reenvío de resultados",
+    "pasos": [
+      "Solicitud",
+      "Identificar persona",
+      "Código",
+      "Envío con acuse"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Solicitud",
+        "canal": "wa",
+        "horas_atras": 94
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 25,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Llamada",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1109",
+    "persona": "P-2009",
+    "nombre": "José Luis Reyes",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ord",
+    "proceso": "Orden de médico referidor",
+    "pasos": [
+      "Orden emitida",
+      "Invitación enviada",
+      "Agendar",
+      "Pagar",
+      "Atención"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Orden emitida",
+        "canal": "med",
+        "horas_atras": 41
+      },
+      {
+        "paso": "Invitación enviada",
+        "canal": "wa",
+        "horas_atras": 29
+      },
+      {
+        "paso": "Agendar",
+        "canal": "web",
+        "horas_atras": 19
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 60,
+    "prioridad": [
+      3,
+      "Baja"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1110",
+    "persona": "P-2010",
+    "nombre": "Fernanda Castillo",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": "Menor de edad",
+    "plantilla": "alta",
+    "proceso": "Alta como tutor o cuidador",
+    "pasos": [
+      "Registro del familiar",
+      "Código",
+      "Consentimiento o documento",
+      "Vínculo verificado"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Registro del familiar",
+        "canal": "wa",
+        "horas_atras": 94
+      },
+      {
+        "paso": "Código",
+        "canal": "wa",
+        "horas_atras": 93
+      },
+      {
+        "paso": "Consentimiento o documento",
+        "canal": "cli",
+        "horas_atras": 87
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "rebotado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 75,
+    "prioridad": [
+      8,
+      "Alta"
+    ],
+    "canal_sugerido": "Llamada",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1111",
+    "persona": "P-2011",
+    "nombre": "Ricardo Mendoza",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "res",
+    "proceso": "Resultados de una orden",
+    "pasos": [
+      "Toma de muestras",
+      "Ultrasonido",
+      "Radiografía de tórax",
+      "Electrocardiograma",
+      "Enlace de resultados"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Toma de muestras",
+        "canal": "cli",
+        "horas_atras": 84
+      },
+      {
+        "paso": "Ultrasonido",
+        "canal": "sis",
+        "horas_atras": 79
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": {
+      "numero": "O-5611",
+      "estudios": [
+        {
+          "estudio": "Ultrasonido",
+          "estado": "liberado",
+          "liberado_horas_atras": 79,
+          "causa": null,
+          "fecha_comprometida": null
+        },
+        {
+          "estudio": "Radiografía de tórax",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Proveedor externo · INC-O4-05",
+          "fecha_comprometida": "jueves 12:00"
+        },
+        {
+          "estudio": "Electrocardiograma",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Proveedor externo · INC-O4-05",
+          "fecha_comprometida": "viernes 10:00"
+        }
+      ]
+    },
+    "nota": null,
+    "sintetico": true,
+    "avance": 40,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo con fecha del estudio pendiente",
+    "siguiente_accion": "Informar el estudio pendiente y su fecha"
+  },
+  {
+    "tramite": "T-1112",
+    "persona": "P-2012",
+    "nombre": "Alejandra Ríos",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ret",
+    "proceso": "Resultado retrasado",
+    "pasos": [
+      "Aviso de retraso",
+      "Nueva fecha",
+      "Resultado liberado",
+      "Enlace enviado"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Aviso de retraso",
+        "canal": "wa",
+        "horas_atras": 103
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 25,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Destrabar el proceso interno"
+  },
+  {
+    "tramite": "T-1113",
+    "persona": "P-2013",
+    "nombre": "Roberto Navarro",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": "Adulto mayor",
+    "plantilla": "res",
+    "proceso": "Resultados de una orden",
+    "pasos": [
+      "Toma de muestras",
+      "Ultrasonido",
+      "Radiografía de tórax",
+      "Electrocardiograma",
+      "Enlace de resultados"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Toma de muestras",
+        "canal": "cli",
+        "horas_atras": 40
+      },
+      {
+        "paso": "Ultrasonido",
+        "canal": "sis",
+        "horas_atras": 25
+      },
+      {
+        "paso": "Radiografía de tórax",
+        "canal": "sis",
+        "horas_atras": 9
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": {
+      "numero": "O-5613",
+      "estudios": [
+        {
+          "estudio": "Ultrasonido",
+          "estado": "liberado",
+          "liberado_horas_atras": 25,
+          "causa": null,
+          "fecha_comprometida": null
+        },
+        {
+          "estudio": "Radiografía de tórax",
+          "estado": "liberado",
+          "liberado_horas_atras": 9,
+          "causa": null,
+          "fecha_comprometida": null
+        },
+        {
+          "estudio": "Electrocardiograma",
+          "estado": "pendiente",
+          "liberado_horas_atras": null,
+          "causa": "Proveedor externo · INC-O4-05",
+          "fecha_comprometida": "viernes 10:00"
+        }
+      ]
+    },
+    "nota": null,
+    "sintetico": true,
+    "avance": 60,
+    "prioridad": [
+      7,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo con fecha del estudio pendiente",
+    "siguiente_accion": "Informar el estudio pendiente y su fecha"
+  },
+  {
+    "tramite": "T-1114",
+    "persona": "P-2014",
+    "nombre": "Verónica Herrera",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "alta",
+    "proceso": "Alta como tutor o cuidador",
+    "pasos": [
+      "Registro del familiar",
+      "Código",
+      "Consentimiento o documento",
+      "Vínculo verificado"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Registro del familiar",
+        "canal": "wa",
+        "horas_atras": 159
+      },
+      {
+        "paso": "Código",
+        "canal": "wa",
+        "horas_atras": 139
+      },
+      {
+        "paso": "Consentimiento o documento",
+        "canal": "cli",
+        "horas_atras": 119
+      },
+      {
+        "paso": "Vínculo verificado",
+        "canal": "cli",
+        "horas_atras": 101
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 100,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Trámite completo"
+  },
+  {
+    "tramite": "T-1115",
+    "persona": "P-2015",
+    "nombre": "Arturo Medina",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ree",
+    "proceso": "Reenvío de resultados",
+    "pasos": [
+      "Solicitud",
+      "Identificar persona",
+      "Código",
+      "Envío con acuse"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Solicitud",
+        "canal": "wa",
+        "horas_atras": 38
+      },
+      {
+        "paso": "Identificar persona",
+        "canal": "wa",
+        "horas_atras": 29
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 50,
+    "prioridad": [
+      4,
+      "Media"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  },
+  {
+    "tramite": "T-1116",
+    "persona": "P-2016",
+    "nombre": "Claudia Romero",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "fac",
+    "proceso": "Factura con régimen equivocado",
+    "pasos": [
+      "Solicitud",
+      "Datos fiscales",
+      "Corrección",
+      "Factura emitida"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Solicitud",
+        "canal": "web",
+        "horas_atras": 92
+      },
+      {
+        "paso": "Datos fiscales",
+        "canal": "web",
+        "horas_atras": 83
+      }
+    ],
+    "detenido_por": "proceso_interno",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 50,
+    "prioridad": [
+      8,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Destrabar el proceso interno"
+  },
+  {
+    "tramite": "T-1117",
+    "persona": "P-2017",
+    "nombre": "Francisco Aguilar",
+    "vinculo": "Titular",
+    "gestiona": null,
+    "vulnerabilidad": null,
+    "plantilla": "ord",
+    "proceso": "Orden de médico referidor",
+    "pasos": [
+      "Orden emitida",
+      "Invitación enviada",
+      "Agendar",
+      "Pagar",
+      "Atención"
+    ],
+    "pasos_completados": [
+      {
+        "paso": "Orden emitida",
+        "canal": "med",
+        "horas_atras": 125
+      },
+      {
+        "paso": "Invitación enviada",
+        "canal": "wa",
+        "horas_atras": 122
+      },
+      {
+        "paso": "Agendar",
+        "canal": "web",
+        "horas_atras": 109
+      },
+      {
+        "paso": "Pagar",
+        "canal": "web",
+        "horas_atras": 105
+      }
+    ],
+    "detenido_por": "paciente",
+    "correo": "verificado",
+    "orden": null,
+    "nota": null,
+    "sintetico": true,
+    "avance": 80,
+    "prioridad": [
+      6,
+      "Alta"
+    ],
+    "canal_sugerido": "Correo de seguimiento",
+    "siguiente_accion": "Invitar a retomar donde se quedó"
+  }
+]

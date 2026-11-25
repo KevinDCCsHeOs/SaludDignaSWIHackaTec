@@ -5,9 +5,9 @@ const logger = new Logger('OtpWhatsapp');
 /** Texto del código para el paciente (es obligatorio, en deseable). */
 const TEXTO_CODIGO: Record<'es' | 'en', (codigo: string) => string> = {
   es: (codigo) =>
-    `Tu código de verificación de Salud Digna es ${codigo}. Vence en 5 minutos. No lo compartas con nadie.`,
+    `Tu código de verificación de Salud Digna es ${codigo}. Vence en 15 minutos. No lo compartas con nadie.`,
   en: (codigo) =>
-    `Your Salud Digna verification code is ${codigo}. It expires in 5 minutes. Do not share it.`,
+    `Your Salud Digna verification code is ${codigo}. It expires in 15 minutes. Do not share it.`,
 };
 
 /** El despacho real solo ocurre en producción o desarrollo con credenciales de Meta, nunca en pruebas. */

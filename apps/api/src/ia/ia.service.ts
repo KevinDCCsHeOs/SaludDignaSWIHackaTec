@@ -5,11 +5,18 @@ import type {
   PrioridadTicket,
   TipoTicket,
 } from '@salud-digna/shared';
-import { CANALES_ATENCION, IDIOMAS_PACIENTE } from '@salud-digna/shared';
+import {
+  CANALES_ATENCION,
+  IDIOMAS_PACIENTE,
+  evaluarRutaPorRiesgo,
+  type IdSolicitudRiesgo,
+  type RutaAtencion,
+} from '@salud-digna/shared';
 import { z } from 'zod';
 import type { UsuarioAutenticado } from '../auth/guards';
 import { CanalesService } from '../canales/canales.service';
 import { CatalogosService } from '../catalogos/catalogos.service';
+import { EventPublisherService } from '../common/eventos/event-publisher.service';
 import { ContextoService } from '../contexto/contexto.service';
 import { IdentityResolverService } from '../identidad/identidad.service';
 import { AccesoPacienteService } from '../otp/acceso-paciente.service';
@@ -89,6 +96,27 @@ const SALUDO_NAHUATL =
  * Servicio central de Inteligencia Artificial Omnicanal (#24, #25, #26).
  * Reutilizable desde WhatsApp (`apps/whatsapp-bot`) y Chat Web (`apps/web`).
  */
+/** Intención del asistente → solicitud del catálogo de riesgo (traspaso v2). */
+const SOLICITUD_POR_INTENCION: Partial<Record<IntencionIa, IdSolicitudRiesgo>> = {
+  cotizar: 'cot',
+  agendar: 'age',
+  resultados: 'ree',
+  ubicacion: 'info',
+  queja: 'que',
+  acceso: 'acc',
+  estatus: 'ret',
+  urgencia: 'eme',
+};
+
+/** Prioridad del ticket según la ruta: la persona debe intervenir dentro del compromiso. */
+const PRIORIDAD_POR_RUTA: Record<RutaAtencion, PrioridadTicket | null> = {
+  Aceptar: null,
+  Reducir: null,
+  Compartir: 'media',
+  Escalar: 'alta',
+  Evitar: 'critica',
+};
+
 @Injectable()
 export class IaService {
   private readonly conversaciones = new Map<string, EstadoConversacionIa>();
@@ -102,6 +130,7 @@ export class IaService {
     private readonly tickets: TicketsService,
     private readonly canales: CanalesService,
     private readonly servicio: ServicioService,
+    private readonly eventos: EventPublisherService,
   ) {}
 
   async procesarMensaje(
@@ -462,7 +491,12 @@ export class IaService {
       contexto: params.contextoMinimo,
       historialReciente: params.historial,
     });
-    const tiempoEsperaMinutos = this.calcularTiempoEsperaMinutos(params.prioridad, params.region);
+    // Ruta por riesgo (traspaso v2): si la solicitud exige una persona, fija prioridad y compromiso
+    const solicitud = SOLICITUD_POR_INTENCION[params.intencion];
+    const decision = solicitud ? evaluarRutaPorRiesgo({ solicitud }) : null;
+    const porRuta = decision?.atiendePersona ? PRIORIDAD_POR_RUTA[decision.ruta] : null;
+    const prioridad = porRuta ?? params.prioridad;
+    const tiempoEsperaMinutos = this.calcularTiempoEsperaMinutos(prioridad, params.region);
 
     let ticketId: string | null = null;
     let ticketFolio: string | null = null;
@@ -473,20 +507,48 @@ export class IaService {
           tramiteId: params.tramiteId,
           canalOrigen: params.canal,
           tipo: params.tipoTicket,
-          prioridad: params.prioridad,
+          prioridad,
           region: params.region,
           resumenIa,
+          ...(decision?.atiendePersona && decision.compromisoSegundos
+            ? {
+                slaMinutos: Math.max(1, Math.round(decision.compromisoSegundos / 60)),
+                motivoEscalamiento:
+                  `Ruta ${decision.ruta} (riesgo ${decision.riesgo})${decision.motivos.length ? `: ${decision.motivos.join('; ')}` : ''}`.slice(
+                    0,
+                    255,
+                  ),
+              }
+            : {}),
         },
         { tipo: 'asesor_ia', id: 'asistente-ia' },
       );
       ticketId = ticket.id;
       ticketFolio = ticket.folio;
+      if (decision?.atiendePersona) {
+        await this.eventos.publicar({
+          tipo: 'enrutamiento.escalado',
+          version: 1,
+          pacienteId: params.pacienteId,
+          tramiteId: params.tramiteId,
+          canal: params.canal,
+          actor: { tipo: 'asesor_ia', id: 'asistente-ia' },
+          rolActor: 'bot',
+          datos: {
+            solicitud: decision.solicitud,
+            riesgo: decision.riesgo,
+            ruta: decision.ruta,
+            motivos: decision.motivos,
+            compromisoSegundos: decision.compromisoSegundos,
+          },
+        });
+      }
     }
 
     return {
       requerido: true,
       motivo: params.motivo,
-      prioridad: params.prioridad,
+      prioridad,
       tiempoEsperaMinutos,
       ticketId,
       ticketFolio,

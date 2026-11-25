@@ -174,6 +174,105 @@ const ResultadoLiberadoDatosSchema = z.object({
   canalNotificacion: CanalAtencionSchema,
 });
 
+// Eventos del traspaso v2 (canal propietario, temporizadores, ruta por riesgo, seguimiento)
+const SesionAvisoInactividadDatosSchema = z.object({
+  canalConversacion: CanalAtencionSchema,
+  inactivoSegundos: z.number().int().nonnegative(),
+  cierreEnSegundos: z.number().int().nonnegative(),
+  perfilPlazos: z.enum(['produccion', 'exposicion']),
+});
+
+const ContextoTransferidoDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  canalAnterior: CanalAtencionSchema.nullable(),
+  canalNuevo: CanalAtencionSchema,
+  versionNueva: z.number().int().positive(),
+  propietarioHasta: z.string().datetime({ offset: true }),
+});
+
+const CanalPropietarioLiberadoDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  canalLiberado: CanalAtencionSchema,
+  motivo: z.enum(['liberado', 'caducado']),
+});
+
+const CitaApartadaDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  clinicaId: z.string().min(1).max(36),
+  fechaHora: z.string().datetime({ offset: true }),
+  apartadoHasta: z.string().datetime({ offset: true }),
+});
+
+const CupoLiberadoDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  clinicaId: z.string().min(1).max(36),
+  fechaHora: z.string().datetime({ offset: true }),
+});
+
+const IdentidadCodigoEnviadoDatosSchema = z.object({
+  canalEnvio: CanalAtencionSchema,
+  venceEn: z.string().datetime({ offset: true }),
+});
+
+const IdentidadCodigoVencidoDatosSchema = z.object({ canalEnvio: CanalAtencionSchema });
+
+const EnrutamientoEscaladoDatosSchema = z.object({
+  solicitud: z.string().min(1).max(40),
+  riesgo: z.number().int().nonnegative(),
+  ruta: z.enum(['Aceptar', 'Reducir', 'Compartir', 'Escalar', 'Evitar']),
+  motivos: z.array(z.string().min(1).max(200)).max(10),
+  compromisoSegundos: z.number().int().positive().nullable(),
+});
+
+const EnrutamientoAtendidoDatosSchema = z.object({
+  solicitud: z.string().min(1).max(40),
+  riesgo: z.number().int().nonnegative(),
+  ruta: z.enum(['Aceptar', 'Reducir', 'Compartir', 'Escalar', 'Evitar']),
+});
+
+const AccesoConsultadoDatosSchema = z.object({
+  recurso: z.string().min(1).max(60),
+  rolUsuario: z.string().min(1).max(30),
+});
+
+const AccesoDenegadoDatosSchema = z.object({
+  recurso: z.string().min(1).max(60),
+  motivo: z.string().min(1).max(120),
+});
+
+const ResultadoValorCriticoDatosSchema = z.object({
+  resultadoId: z.string().min(1).max(36),
+  estudioId: z.string().min(1).max(36),
+});
+
+const IncidenteRegistradoDatosSchema = z.object({
+  tipoIncidente: z.enum(['emergencia', 'valor_critico', 'queja', 'otro']),
+  descripcion: z.string().min(1).max(200),
+});
+
+const EntregaRetrasadaDatosSchema = z.object({
+  ordenFolio: z.string().min(1).max(32),
+  estudioNombre: z.string().min(1).max(160),
+  fechaComprometida: z.string().datetime({ offset: true }),
+  causa: z.string().min(1).max(200),
+});
+
+const SeguimientoCorreoEnviadoDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  motivo: z.string().min(1).max(120),
+  enlaceVenceEn: z.string().datetime({ offset: true }),
+});
+
+const SeguimientoPlantillaEnviadaDatosSchema = z.object({
+  folio: z.string().min(1).max(32),
+  plantilla: z.string().min(1).max(60),
+});
+
+const CompromisoVencidoDatosSchema = z.object({
+  ruta: z.enum(['Compartir', 'Escalar', 'Evitar']),
+  compromisoSegundos: z.number().int().positive(),
+});
+
 // ----------------------------------------------------------------------------
 // Esquemas completos por evento (sobre común + tipo literal + versión + datos)
 // ----------------------------------------------------------------------------
@@ -296,6 +395,92 @@ export const ResultadoLiberadoEventoSchema = crearEsquemaEvento(
   ResultadoLiberadoDatosSchema,
 );
 
+export const SesionAvisoInactividadEventoSchema = crearEsquemaEvento(
+  'sesion.aviso_inactividad',
+  1,
+  SesionAvisoInactividadDatosSchema,
+);
+export const ContextoTransferidoEventoSchema = crearEsquemaEvento(
+  'contexto.transferido',
+  1,
+  ContextoTransferidoDatosSchema,
+);
+export const CanalPropietarioLiberadoEventoSchema = crearEsquemaEvento(
+  'canal.propietario_liberado',
+  1,
+  CanalPropietarioLiberadoDatosSchema,
+);
+export const CitaApartadaEventoSchema = crearEsquemaEvento(
+  'cita.apartada',
+  1,
+  CitaApartadaDatosSchema,
+);
+export const CupoLiberadoEventoSchema = crearEsquemaEvento(
+  'cupo.liberado',
+  1,
+  CupoLiberadoDatosSchema,
+);
+export const IdentidadCodigoEnviadoEventoSchema = crearEsquemaEvento(
+  'identidad.codigo_enviado',
+  1,
+  IdentidadCodigoEnviadoDatosSchema,
+);
+export const IdentidadCodigoVencidoEventoSchema = crearEsquemaEvento(
+  'identidad.codigo_vencido',
+  1,
+  IdentidadCodigoVencidoDatosSchema,
+);
+export const EnrutamientoEscaladoEventoSchema = crearEsquemaEvento(
+  'enrutamiento.escalado',
+  1,
+  EnrutamientoEscaladoDatosSchema,
+);
+export const EnrutamientoAtendidoEventoSchema = crearEsquemaEvento(
+  'enrutamiento.atendido',
+  1,
+  EnrutamientoAtendidoDatosSchema,
+);
+export const AccesoConsultadoEventoSchema = crearEsquemaEvento(
+  'acceso.consultado',
+  1,
+  AccesoConsultadoDatosSchema,
+);
+export const AccesoDenegadoEventoSchema = crearEsquemaEvento(
+  'acceso.denegado',
+  1,
+  AccesoDenegadoDatosSchema,
+);
+export const ResultadoValorCriticoEventoSchema = crearEsquemaEvento(
+  'resultado.valor_critico',
+  1,
+  ResultadoValorCriticoDatosSchema,
+);
+export const IncidenteRegistradoEventoSchema = crearEsquemaEvento(
+  'incidente.registrado',
+  1,
+  IncidenteRegistradoDatosSchema,
+);
+export const EntregaRetrasadaEventoSchema = crearEsquemaEvento(
+  'entrega.retrasada',
+  1,
+  EntregaRetrasadaDatosSchema,
+);
+export const SeguimientoCorreoEnviadoEventoSchema = crearEsquemaEvento(
+  'seguimiento.correo_enviado',
+  1,
+  SeguimientoCorreoEnviadoDatosSchema,
+);
+export const SeguimientoPlantillaEnviadaEventoSchema = crearEsquemaEvento(
+  'seguimiento.plantilla_enviada',
+  1,
+  SeguimientoPlantillaEnviadaDatosSchema,
+);
+export const CompromisoVencidoEventoSchema = crearEsquemaEvento(
+  'compromiso.vencido',
+  1,
+  CompromisoVencidoDatosSchema,
+);
+
 /**
  * Unión discriminada de todos los eventos oficiales del catálogo omnicanal.
  */
@@ -321,6 +506,23 @@ export const EventoOmnicanalSchema = z.discriminatedUnion('tipo', [
   TicketSlaVencidoEventoSchema,
   TicketCerradoEventoSchema,
   ResultadoLiberadoEventoSchema,
+  SesionAvisoInactividadEventoSchema,
+  ContextoTransferidoEventoSchema,
+  CanalPropietarioLiberadoEventoSchema,
+  CitaApartadaEventoSchema,
+  CupoLiberadoEventoSchema,
+  IdentidadCodigoEnviadoEventoSchema,
+  IdentidadCodigoVencidoEventoSchema,
+  EnrutamientoEscaladoEventoSchema,
+  EnrutamientoAtendidoEventoSchema,
+  AccesoConsultadoEventoSchema,
+  AccesoDenegadoEventoSchema,
+  ResultadoValorCriticoEventoSchema,
+  IncidenteRegistradoEventoSchema,
+  EntregaRetrasadaEventoSchema,
+  SeguimientoCorreoEnviadoEventoSchema,
+  SeguimientoPlantillaEnviadaEventoSchema,
+  CompromisoVencidoEventoSchema,
 ]);
 
 export type EventoOmnicanal = z.infer<typeof EventoOmnicanalSchema>;
@@ -877,6 +1079,481 @@ export const CATALOGO_EVENTOS: readonly DefinicionEventoCatalogo[] = [
         validadoPorId: 'usr_med_01',
         canalNotificacion: 'whatsapp',
       },
+    },
+  },
+  {
+    tipo: 'sesion.aviso_inactividad',
+    version: 1,
+    dominio: 'sesion',
+    descripcion:
+      'Único aviso de inactividad de la conversación: ya anuncia el cierre y cómo retomar (traspaso v2, sección 5).',
+    emisor: 'sesiones',
+    consumidores: ['timeline', 'metricas'],
+    schema: SesionAvisoInactividadEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000001',
+      tipo: 'sesion.aviso_inactividad',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'sistema', id: 'temporizadores' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'sistema',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'sesion.aviso_inactividad:trm_456:1',
+      datos: {
+        canalConversacion: 'whatsapp',
+        inactivoSegundos: 30,
+        cierreEnSegundos: 30,
+        perfilPlazos: 'exposicion',
+      },
+    },
+  },
+  {
+    tipo: 'contexto.transferido',
+    version: 1,
+    dominio: 'contexto',
+    descripcion:
+      'El trámite cambia de canal propietario (p. ej. WhatsApp → llamada); el canal anterior deja de escribir.',
+    emisor: 'canales',
+    consumidores: ['timeline', 'realtime', 'metricas', 'auditoria'],
+    schema: ContextoTransferidoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000002',
+      tipo: 'contexto.transferido',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'call_center',
+      actor: { tipo: 'asesor', id: 'usr_asesor_01' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'operador',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'contexto.transferido:trm_456:2',
+      datos: {
+        folio: 'SD-2026-000123',
+        canalAnterior: 'whatsapp',
+        canalNuevo: 'call_center',
+        versionNueva: 4,
+        propietarioHasta: '2026-11-24T15:02:20Z',
+      },
+    },
+  },
+  {
+    tipo: 'canal.propietario_liberado',
+    version: 1,
+    dominio: 'canal',
+    descripcion:
+      'El canal propietario deja el trámite (al colgar o por caducidad): cualquier canal puede retomarlo.',
+    emisor: 'canales',
+    consumidores: ['timeline', 'realtime'],
+    schema: CanalPropietarioLiberadoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000003',
+      tipo: 'canal.propietario_liberado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'call_center',
+      actor: { tipo: 'sistema', id: 'temporizadores' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'sistema',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'canal.propietario_liberado:trm_456:3',
+      datos: { folio: 'SD-2026-000123', canalLiberado: 'call_center', motivo: 'caducado' },
+    },
+  },
+  {
+    tipo: 'cita.apartada',
+    version: 1,
+    dominio: 'cita',
+    descripcion: 'Se aparta un horario sin confirmar; se libera si vence el plazo.',
+    emisor: 'tramites',
+    consumidores: ['timeline', 'realtime'],
+    schema: CitaApartadaEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000004',
+      tipo: 'cita.apartada',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'paciente', id: 'pac_ana_demo' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'titular',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'cita.apartada:trm_456:4',
+      datos: {
+        folio: 'SD-2026-000123',
+        clinicaId: 'cli_pue_capu',
+        fechaHora: '2026-11-26T15:00:00Z',
+        apartadoHasta: '2026-11-24T14:12:00Z',
+      },
+    },
+  },
+  {
+    tipo: 'cupo.liberado',
+    version: 1,
+    dominio: 'cita',
+    descripcion:
+      'El horario apartado venció sin confirmar; al retomar se propone otro sin pedir datos.',
+    emisor: 'tramites',
+    consumidores: ['timeline', 'realtime', 'metricas'],
+    schema: CupoLiberadoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000005',
+      tipo: 'cupo.liberado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'sistema', id: 'temporizadores' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'sistema',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'cupo.liberado:trm_456:5',
+      datos: {
+        folio: 'SD-2026-000123',
+        clinicaId: 'cli_pue_capu',
+        fechaHora: '2026-11-26T15:00:00Z',
+      },
+    },
+  },
+  {
+    tipo: 'identidad.codigo_enviado',
+    version: 1,
+    dominio: 'identidad',
+    descripcion: 'Se envió un código de un solo uso; nunca incluye el código.',
+    emisor: 'otp',
+    consumidores: ['timeline', 'auditoria'],
+    schema: IdentidadCodigoEnviadoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000006',
+      tipo: 'identidad.codigo_enviado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'sistema', id: 'otp' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'sistema',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'identidad.codigo_enviado:trm_456:6',
+      datos: { canalEnvio: 'whatsapp', venceEn: '2026-11-24T14:15:00Z' },
+    },
+  },
+  {
+    tipo: 'identidad.codigo_vencido',
+    version: 1,
+    dominio: 'identidad',
+    descripcion: 'El código venció sin usarse; antes de mostrar datos se pide uno nuevo.',
+    emisor: 'sesiones',
+    consumidores: ['timeline', 'auditoria'],
+    schema: IdentidadCodigoVencidoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000007',
+      tipo: 'identidad.codigo_vencido',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'sistema', id: 'temporizadores' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'sistema',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'identidad.codigo_vencido:trm_456:7',
+      datos: { canalEnvio: 'whatsapp' },
+    },
+  },
+  {
+    tipo: 'enrutamiento.escalado',
+    version: 1,
+    dominio: 'enrutamiento',
+    descripcion:
+      'La ruta por riesgo decidió que atienda una persona (Compartir, Escalar o Evitar).',
+    emisor: 'enrutamiento',
+    consumidores: ['timeline', 'realtime', 'tickets', 'metricas', 'auditoria'],
+    schema: EnrutamientoEscaladoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000008',
+      tipo: 'enrutamiento.escalado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'asesor_ia', id: 'bot_whatsapp' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'bot',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'enrutamiento.escalado:trm_456:8',
+      datos: {
+        solicitud: 'ree',
+        riesgo: 8,
+        ruta: 'Evitar',
+        motivos: ['acceso de un tercero sin autorización'],
+        compromisoSegundos: 120,
+      },
+    },
+  },
+  {
+    tipo: 'enrutamiento.atendido',
+    version: 1,
+    dominio: 'enrutamiento',
+    descripcion:
+      'La ruta por riesgo permite resolver en autoservicio o con el bot (Aceptar o Reducir).',
+    emisor: 'enrutamiento',
+    consumidores: ['metricas'],
+    schema: EnrutamientoAtendidoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000009',
+      tipo: 'enrutamiento.atendido',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'web',
+      actor: { tipo: 'asesor_ia', id: 'bot_web' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'bot',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'enrutamiento.atendido:trm_456:9',
+      datos: { solicitud: 'cot', riesgo: 4, ruta: 'Aceptar' },
+    },
+  },
+  {
+    tipo: 'acceso.consultado',
+    version: 1,
+    dominio: 'acceso',
+    descripcion:
+      'Alguien consultó el contexto de un paciente (bitácora de accesos, sin el contenido).',
+    emisor: 'canales',
+    consumidores: ['auditoria'],
+    schema: AccesoConsultadoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000010',
+      tipo: 'acceso.consultado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'call_center',
+      actor: { tipo: 'asesor', id: 'usr_asesor_01' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'operador',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'acceso.consultado:trm_456:10',
+      datos: { recurso: 'contexto', rolUsuario: 'asesor' },
+    },
+  },
+  {
+    tipo: 'acceso.denegado',
+    version: 1,
+    dominio: 'acceso',
+    descripcion: 'Se negó una consulta por falta de verificación o de permiso.',
+    emisor: 'canales',
+    consumidores: ['auditoria', 'metricas'],
+    schema: AccesoDenegadoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000011',
+      tipo: 'acceso.denegado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'asesor_ia', id: 'bot_whatsapp' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'bot',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'acceso.denegado:trm_456:11',
+      datos: { recurso: 'contexto', motivo: 'Sin verificación OTP vigente en el canal' },
+    },
+  },
+  {
+    tipo: 'resultado.valor_critico',
+    version: 1,
+    dominio: 'resultado',
+    descripcion:
+      'Un resultado con valor crítico: el bot queda bloqueado y una persona avisa (sin contenido en el evento).',
+    emisor: 'resultados',
+    consumidores: ['timeline', 'realtime', 'tickets', 'auditoria'],
+    schema: ResultadoValorCriticoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000012',
+      tipo: 'resultado.valor_critico',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'web',
+      actor: { tipo: 'medico', id: 'usr_med_01' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'personal_clinico',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'resultado.valor_critico:trm_456:12',
+      datos: { resultadoId: 'res_321', estudioId: 'est_us_abd' },
+    },
+  },
+  {
+    tipo: 'incidente.registrado',
+    version: 1,
+    dominio: 'incidente',
+    descripcion:
+      'Emergencia o incidente derivado a una persona; el trámite se pausa sin perder lo avanzado.',
+    emisor: 'enrutamiento',
+    consumidores: ['timeline', 'realtime', 'tickets', 'auditoria'],
+    schema: IncidenteRegistradoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000013',
+      tipo: 'incidente.registrado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'asesor_ia', id: 'bot_whatsapp' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'bot',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'incidente.registrado:trm_456:13',
+      datos: {
+        tipoIncidente: 'emergencia',
+        descripcion: 'Síntomas de alarma: se indicó llamar al 911 y se avisó a un supervisor',
+      },
+    },
+  },
+  {
+    tipo: 'entrega.retrasada',
+    version: 1,
+    dominio: 'resultado',
+    descripcion:
+      'Un estudio de la orden no estará en la fecha comprometida (INC-O4-05): se informa la nueva fecha.',
+    emisor: 'resultados',
+    consumidores: ['timeline', 'realtime', 'notificaciones'],
+    schema: EntregaRetrasadaEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000014',
+      tipo: 'entrega.retrasada',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'web',
+      actor: { tipo: 'sistema', id: 'laboratorio' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'sistema',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'entrega.retrasada:trm_456:14',
+      datos: {
+        ordenFolio: 'SD-2026-000123',
+        estudioNombre: 'Perfil tiroideo',
+        fechaComprometida: '2026-11-27T18:00:00Z',
+        causa: 'Retraso del proveedor externo de análisis',
+      },
+    },
+  },
+  {
+    tipo: 'seguimiento.correo_enviado',
+    version: 1,
+    dominio: 'seguimiento',
+    descripcion:
+      'Correo de seguimiento sin datos clínicos, con enlace personal que vence y pide código.',
+    emisor: 'seguimiento',
+    consumidores: ['timeline', 'metricas'],
+    schema: SeguimientoCorreoEnviadoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000015',
+      tipo: 'seguimiento.correo_enviado',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'email',
+      actor: { tipo: 'asesor', id: 'usr_asesor_01' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'operador',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'seguimiento.correo_enviado:trm_456:15',
+      datos: {
+        folio: 'SD-2026-000123',
+        motivo: 'Invitar a retomar donde se quedó',
+        enlaceVenceEn: '2026-11-27T14:00:00Z',
+      },
+    },
+  },
+  {
+    tipo: 'seguimiento.plantilla_enviada',
+    version: 1,
+    dominio: 'seguimiento',
+    descripcion: 'Plantilla de WhatsApp enviada fuera de la ventana de 24 h (con costo).',
+    emisor: 'seguimiento',
+    consumidores: ['timeline', 'metricas'],
+    schema: SeguimientoPlantillaEnviadaEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000016',
+      tipo: 'seguimiento.plantilla_enviada',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'whatsapp',
+      actor: { tipo: 'asesor', id: 'usr_asesor_01' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'operador',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'seguimiento.plantilla_enviada:trm_456:16',
+      datos: { folio: 'SD-2026-000123', plantilla: 'sd_tramite_pendiente' },
+    },
+  },
+  {
+    tipo: 'compromiso.vencido',
+    version: 1,
+    dominio: 'enrutamiento',
+    descripcion:
+      'Venció el compromiso de atención humana de la ruta (p. ej. una persona en menos de 2 min).',
+    emisor: 'sesiones',
+    consumidores: ['timeline', 'realtime', 'tickets', 'metricas'],
+    schema: CompromisoVencidoEventoSchema,
+    ejemplo: {
+      eventId: '20000000-0000-4000-8000-000000000017',
+      tipo: 'compromiso.vencido',
+      version: 1,
+      pacienteId: 'pac_ana_demo',
+      tramiteId: 'trm_456',
+      canal: 'call_center',
+      actor: { tipo: 'sistema', id: 'temporizadores' },
+      timestamp: '2026-11-24T14:10:00Z',
+      ocurridoEn: '2026-11-24T14:10:00Z',
+      rolActor: 'sistema',
+      versionTramite: 3,
+      correlacionId: 'conv_wa_ana_01',
+      llaveIdempotencia: 'compromiso.vencido:trm_456:17',
+      datos: { ruta: 'Escalar', compromisoSegundos: 900 },
     },
   },
 ] as const;

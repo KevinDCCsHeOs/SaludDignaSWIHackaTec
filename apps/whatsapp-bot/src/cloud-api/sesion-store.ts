@@ -20,6 +20,12 @@ export interface SesionDialogoWa {
   pasoInterrumpido: PasoDialogoWa | null;
   idioma: IdiomaBotWa;
   ultimoMensajeEn: string;
+  /** Hora del umbral en que se envió el único aviso de inactividad (v2). */
+  avisoInactividadEn?: string | null;
+  /** La conversación se cerró por inactividad; el trámite conserva todo (v2). */
+  cerradaEn?: string | null;
+  /** Ya se avisó una vez que la atención sigue por teléfono (canal propietario, v2). */
+  avisoAtencionTelefonicaEn?: string | null;
 }
 
 const TTL_SESION_WA_MS = 24 * 60 * 60 * 1000; // Ventana de servicio 24 h (#21)
@@ -117,6 +123,12 @@ export class SesionWaStore {
     void actual.finally(() => {
       if (this.escrituras.get(clave) === actual) this.escrituras.delete(clave);
     });
+  }
+
+  /** Conversaciones en memoria, para revisar inactividad (v2). */
+  listar(): SesionDialogoWa[] {
+    const ahora = Date.now();
+    return [...this.sesiones.values()].filter((e) => e.expiraEn > ahora).map((e) => e.datos);
   }
 
   /** Espera a que terminen las escrituras pendientes (pruebas y apagado ordenado). */

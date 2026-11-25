@@ -1,0 +1,63 @@
+{
+  "umbrales": [
+    {
+      "ruta": "Aceptar",
+      "hasta": 4
+    },
+    {
+      "ruta": "Reducir",
+      "hasta": 9
+    },
+    {
+      "ruta": "Compartir",
+      "hasta": 14
+    },
+    {
+      "ruta": "Escalar",
+      "hasta": 19
+    },
+    {
+      "ruta": "Evitar",
+      "desde": 20
+    }
+  ],
+  "rutas": [
+    {
+      "nivel": 0,
+      "ruta": "Aceptar",
+      "quien_atiende": "Autoservicio completo",
+      "compromiso_persona_seg": null
+    },
+    {
+      "nivel": 1,
+      "ruta": "Reducir",
+      "quien_atiende": "Bot con confirmación y seguimiento automático",
+      "compromiso_persona_seg": null
+    },
+    {
+      "nivel": 2,
+      "ruta": "Compartir",
+      "quien_atiende": "Asesor o especialista con el contexto acumulado",
+      "compromiso_persona_seg": 120
+    },
+    {
+      "nivel": 3,
+      "ruta": "Escalar",
+      "quien_atiende": "Supervisor, médico o soporte, con prioridad",
+      "compromiso_persona_seg": 900
+    },
+    {
+      "nivel": 4,
+      "ruta": "Evitar",
+      "quien_atiende": "Una persona interviene de inmediato; el bot no responde el contenido",
+      "compromiso_persona_seg": 120
+    }
+  ],
+  "ajustes": [
+    "Usuario enfermo o estresado: +5 al riesgo (sube un nivel)",
+    "Tercero sin permiso pide resultados: ruta Evitar (el bot no entrega contenido; una persona pide autorización al titular)",
+    "Corregir identidad sin permiso: mínimo Escalar",
+    "Otra lengua y contenido clínico: mínimo Compartir (intérprete)",
+    "Valor crítico y emergencia: siempre Evitar; nunca por bot"
+  ]
+}

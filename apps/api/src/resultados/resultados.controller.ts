@@ -15,6 +15,39 @@ import {
 export class ResultadosController {
   constructor(private readonly resultados: ResultadosService) {}
 
+  /**
+   * Estado de los estudios de un paciente para el Call Center (traspaso v2, principio 10):
+   * el operador ve "liberado / pendiente", nunca el valor ni el resumen clínico.
+   * Con varios estudios en una orden, el enlace de resultados queda bloqueado hasta liberarlos todos.
+   */
+  @Roles('asesor', 'asesor_pro', 'admin')
+  @Auditar({ accion: 'leer', entidad: 'Resultado' })
+  @Get('estado-estudios/:pacienteId')
+  estadoEstudios(@Param('pacienteId') pacienteId: string) {
+    const porTramite = new Map<
+      string,
+      { folio: string; estudios: Array<{ estudioNombre: string; estado: EstatusResultado }> }
+    >();
+    for (const r of this.resultados.listarTodosInterno()) {
+      if (r.pacienteId !== pacienteId) continue;
+      const orden = porTramite.get(r.tramiteId) ?? { folio: r.folioTramite, estudios: [] };
+      orden.estudios.push({ estudioNombre: r.estudioNombre, estado: r.estado });
+      porTramite.set(r.tramiteId, orden);
+    }
+    const ordenes = [...porTramite.entries()].map(([tramiteId, orden]) => {
+      const liberados = orden.estudios.filter((e) => e.estado === 'liberado').length;
+      return {
+        tramiteId,
+        folio: orden.folio,
+        total: orden.estudios.length,
+        liberados,
+        enlaceBloqueado: liberados < orden.estudios.length,
+        estudios: orden.estudios,
+      };
+    });
+    return { pacienteId, ordenes };
+  }
+
   @Roles('paciente', 'revisor_tecnico', 'medico', 'admin')
   @Get()
   listar(

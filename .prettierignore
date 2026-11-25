@@ -14,3 +14,6 @@ apps/api/prisma/schema.prisma
 *.md
 .agents
 skills-lock.json
+
+# Especificaciones del traspaso v2: se conservan idénticas a las del equipo
+docs/v2-handoff/

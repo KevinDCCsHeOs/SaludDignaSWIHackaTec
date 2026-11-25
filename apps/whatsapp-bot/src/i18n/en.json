@@ -56,5 +56,9 @@
     "faltanDatos": "To issue your invoice without repeating details, save your RFC, tax regime and postal code once in the web portal or the app.",
     "leyendaPdf": "Simulated invoice {{folio}} (also available for download in the Salud Digna app).",
     "descargaEnApp": "Your simulated invoice {{folio}} has been issued. We couldn't attach it here; download it from \"My requests\" on the web or the Salud Digna app."
+  },
+  "sesion": {
+    "avisoInactividad": "Your progress is saved. If you don't reply within {{minutos}} we will close this conversation; to resume, type CONTINUE, open the app or call us.",
+    "atencionTelefonica": "An advisor is now helping you by phone, so we will continue there. You can write here again once the call ends."
   }
 }

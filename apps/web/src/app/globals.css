@@ -1,16 +1,20 @@
 @import 'leaflet/dist/leaflet.css';
 
 :root {
-  --sd-primary: #0b6e4f;
-  --sd-primary-dark: #07513a;
+  /* Paleta del traspaso v2 (sección 11): verde de marca con contraste AA para texto y botones */
+  --sd-primary: #00804f;
+  --sd-primary-dark: #00603b;
+  --sd-acento: #00ac6b;
   --sd-secondary: #1d4ed8;
-  --sd-bg: #f8fafc;
+  --sd-bg: #ffffff;
+  --sd-panel: #f3f7f5;
   --sd-surface: #ffffff;
-  --sd-border: #cbd5e1;
-  --sd-text: #0f172a;
-  --sd-muted: #334155;
-  --sd-warn: #92400e;
-  --sd-danger: #991b1b;
+  --sd-border: #cfd8d3;
+  --sd-text: #25282a;
+  --sd-muted: #3f4447;
+  --sd-gris: #838587;
+  --sd-warn: #a65f00;
+  --sd-danger: #c0262d;
 }
 
 html {
@@ -25,6 +29,7 @@ body {
   margin: 0;
   font-size: 1rem;
   font-family:
+    var(--sd-fuente),
     system-ui,
     -apple-system,
     'Segoe UI',
@@ -528,4 +533,183 @@ a {
   .sd-canal-arrow-live {
     animation: none;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Vista del operador tipo CRM (traspaso v2, sección 8)
+ * ------------------------------------------------------------------------- */
+.sd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sd-crm {
+  border-top: 4px solid var(--sd-acento);
+  margin-top: 1rem;
+}
+
+.sd-crm-encabezado,
+.sd-crm-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sd-crm-bloque {
+  margin-top: 0.9rem;
+}
+
+.sd-crm-llamada {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  background: var(--sd-panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sd-crm-llamada-activa {
+  background: #e3f5ec;
+  border: 1px solid var(--sd-acento);
+}
+
+.sd-crm-accion {
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: var(--sd-panel);
+}
+
+.sd-chip {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.sd-chip-verde {
+  background: #e3f5ec;
+  color: #00603b;
+  border-color: #9bd9bd;
+}
+
+.sd-chip-ambar {
+  background: #fdf1df;
+  color: #7a4500;
+  border-color: #f0c98a;
+}
+
+.sd-chip-rojo {
+  background: #fbe5e6;
+  color: #9b1c22;
+  border-color: #f0a9ad;
+}
+
+.sd-chip-gris {
+  background: #eef0f1;
+  color: #3f4447;
+  border-color: #d3d6d8;
+}
+
+.sd-tramos {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 4px;
+}
+
+.sd-tramo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.sd-tramo-canal {
+  min-height: 1.1rem;
+  color: var(--sd-muted);
+  font-weight: 600;
+}
+
+.sd-tramo-barra {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e6e4;
+}
+
+.sd-tramo-hecho .sd-tramo-barra {
+  background: var(--sd-acento);
+}
+
+.sd-tramo-aqui .sd-tramo-barra {
+  background: repeating-linear-gradient(45deg, #f0c98a, #f0c98a 4px, #fdf1df 4px, #fdf1df 8px);
+  outline: 2px solid var(--sd-warn);
+}
+
+.sd-tramo-aqui .sd-tramo-etiqueta em {
+  color: #7a4500;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.sd-semaforo {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+
+.sd-semaforo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.sd-luz {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 0.3rem;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.sd-luz-verde {
+  background: var(--sd-acento);
+}
+
+.sd-luz-ambar {
+  background: #e19a2c;
+}
+
+.sd-luz-rojo {
+  background: var(--sd-danger);
+}
+
+.sd-luz-gris {
+  background: #c9cccd;
+}
+
+.sd-lista-simple {
+  margin: 0.35rem 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
 }

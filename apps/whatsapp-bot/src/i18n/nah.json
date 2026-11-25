@@ -56,5 +56,9 @@
     "faltanDatos": "Para emitir tu factura sin repetir datos, guarda tu RFC, régimen fiscal y código postal una sola vez en el portal web o la app.",
     "leyendaPdf": "Factura simulada {{folio}} (también disponible para descarga en la App Salud Digna).",
     "descargaEnApp": "Tu factura simulada {{folio}} ya está emitida. No pudimos adjuntarla aquí; descárgala desde \"Mis trámites\" en la web o la App Salud Digna."
+  },
+  "sesion": {
+    "avisoInactividad": "Tu avance quedó guardado. Si no respondes en {{minutos}} cerraremos esta conversación; para retomarla escribe CONTINUAR, abre la app o llama.",
+    "atencionTelefonica": "Ahora te atiende un asesor por teléfono y seguimos por esa vía. Cuando termine la llamada puedes volver a escribir aquí."
   }
 }

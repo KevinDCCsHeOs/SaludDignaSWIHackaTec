@@ -1,0 +1,27 @@
+[
+  {
+    "id": "wa",
+    "nombre": "WhatsApp",
+    "tiene_sesion_conversacional": true
+  },
+  {
+    "id": "web",
+    "nombre": "Web",
+    "tiene_sesion_conversacional": true
+  },
+  {
+    "id": "app",
+    "nombre": "App",
+    "tiene_sesion_conversacional": true
+  },
+  {
+    "id": "tel",
+    "nombre": "Teléfono",
+    "tiene_sesion_conversacional": false
+  },
+  {
+    "id": "cli",
+    "nombre": "Clínica",
+    "tiene_sesion_conversacional": false
+  }
+]

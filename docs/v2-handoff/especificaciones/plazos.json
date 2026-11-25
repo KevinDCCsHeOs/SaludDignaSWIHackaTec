@@ -1,0 +1,29 @@
+{
+  "produccion": {
+    "aviso": 600,
+    "cierre": 1800,
+    "cupo": 900,
+    "lease": 120,
+    "otp": 900,
+    "distrae": 2100,
+    "lab": "35 min"
+  },
+  "exposicion": {
+    "aviso": 30,
+    "cierre": 60,
+    "cupo": 120,
+    "lease": 20,
+    "otp": 900,
+    "distrae": 130,
+    "lab": "2 min"
+  },
+  "notas": {
+    "aviso": "segundos de inactividad hasta el aviso (un solo mensaje que ya anuncia el cierre)",
+    "cierre": "segundos de inactividad hasta pausar la conversación (sin enviar mensaje)",
+    "cupo": "segundos que dura un horario apartado sin confirmar",
+    "lease": "segundos que dura el permiso de canal propietario sin renovación",
+    "otp": "validez del código de un solo uso; no se reduce en demo",
+    "distrae": "salto de reloj del botón Se distrae",
+    "borrador_seg": 604800
+  }
+}

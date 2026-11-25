@@ -20,7 +20,7 @@ import { EstadisticasRolWidget } from '../../components/EstadisticasRolWidget';
 import { apiWeb } from '../../lib/api';
 import { useAppWeb } from '../../lib/providers';
 
-const COLORES_CANAL = ['#0b6e4f', '#16a34a', '#1d4ed8', '#7c3aed', '#d97706'];
+const COLORES_CANAL = ['#00804f', '#16a34a', '#1d4ed8', '#7c3aed', '#d97706'];
 
 export default function AdminDashboardPage() {
   const { token, usuario } = useAppWeb();
@@ -243,7 +243,7 @@ export default function AdminDashboardPage() {
                     <Bar dataKey="abiertos" name="Abiertos" fill="#f59e0b" />
                     <Bar dataKey="enAtencion" name="En atención" fill="#1d4ed8" />
                     <Bar dataKey="escalados" name="Escalados" fill="#dc2626" />
-                    <Bar dataKey="cerrados" name="Cerrados" fill="#0b6e4f" />
+                    <Bar dataKey="cerrados" name="Cerrados" fill="#00804f" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -26,6 +26,8 @@ export const PatchContextoSchema = z.object({
   fechaTentativa: z.string().datetime({ offset: true }).nullable().optional(),
   datosCapturados: z.record(z.unknown()).optional(),
   pendientes: z.array(z.string().min(1).max(80)).optional(),
+  /** Versión del trámite que vio el cliente; si cambió en otro canal responde 409 (v2). */
+  versionEsperada: z.number().int().positive().optional(),
 });
 
 const ETIQUETAS_PASO: Record<string, string> = {
@@ -99,6 +101,7 @@ export class ContextoService {
       );
     }
     const data = parsed.data;
+    await this.tramites.controlarEscritura(tramite, data.canal, actor, data.versionEsperada);
     const ahora = new Date().toISOString();
     const canalAnterior = tramite.ultimoCanal;
     const ctx = tramite.contexto;
@@ -189,6 +192,7 @@ export class ContextoService {
     ctx.ultimoCanal = data.canal;
     ctx.actualizadoEn = ahora;
 
+    this.tramites.incrementarVersion(tramite);
     await this.tramites.sincronizarCacheContexto(tramite);
 
     // Emitir cambio de canal si cambió respecto al último contacto (#13)

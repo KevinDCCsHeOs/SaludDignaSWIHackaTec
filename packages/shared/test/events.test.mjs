@@ -78,3 +78,41 @@ test('incluye los eventos de transición genérica, cancelación y asignación (
     assert.ok(tipos.has(requerido), `Falta el evento: ${requerido}`);
   }
 });
+
+test('traspaso v2: catálogo con canal propietario, temporizadores, ruta por riesgo y seguimiento', () => {
+  const tipos = new Set(CATALOGO_EVENTOS.map((e) => e.tipo));
+  for (const requerido of [
+    'sesion.aviso_inactividad',
+    'contexto.transferido',
+    'canal.propietario_liberado',
+    'cita.apartada',
+    'cupo.liberado',
+    'identidad.codigo_enviado',
+    'identidad.codigo_vencido',
+    'enrutamiento.escalado',
+    'acceso.denegado',
+    'resultado.valor_critico',
+    'compromiso.vencido',
+  ]) {
+    assert.ok(tipos.has(requerido), `Falta el evento v2: ${requerido}`);
+  }
+});
+
+test('traspaso v2: los campos de actor, hora del hecho, versión e idempotencia son opcionales y se validan', () => {
+  const base = CATALOGO_EVENTOS.find((e) => e.tipo === 'clinica.seleccionada').ejemplo;
+  // Compatibilidad: un evento sin los campos v2 sigue siendo válido
+  assert.equal(validarEventoOmnicanalSeguro(base).success, true);
+
+  const conV2 = validarEventoOmnicanalSeguro({
+    ...base,
+    ocurridoEn: '2026-11-24T10:14:00Z',
+    rolActor: 'tutor',
+    versionTramite: 2,
+    correlacionId: 'conv_web_01',
+    llaveIdempotencia: 'clinica.seleccionada:trm_456:1',
+  });
+  assert.equal(conV2.success, true);
+
+  assert.equal(validarEventoOmnicanalSeguro({ ...base, rolActor: 'vecino' }).success, false);
+  assert.equal(validarEventoOmnicanalSeguro({ ...base, ocurridoEn: 'ayer' }).success, false);
+});

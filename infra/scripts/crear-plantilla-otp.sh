@@ -31,7 +31,7 @@ for idioma in es_MX en_US; do
       \"category\": \"AUTHENTICATION\",
       \"components\": [
         { \"type\": \"BODY\", \"add_security_recommendation\": true },
-        { \"type\": \"FOOTER\", \"code_expiration_minutes\": 5 },
+        { \"type\": \"FOOTER\", \"code_expiration_minutes\": 15 },
         { \"type\": \"BUTTONS\", \"buttons\": [
           { \"type\": \"OTP\", \"otp_type\": \"COPY_CODE\", \"text\": \"$boton\" }
         ] }

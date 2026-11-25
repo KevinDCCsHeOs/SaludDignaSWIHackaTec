@@ -1,0 +1,178 @@
+[
+  {
+    "id": "info",
+    "nombre": "Informarse: sucursal y horario (E01)",
+    "tipo": "solicitud",
+    "probabilidad": 1,
+    "impacto": 1,
+    "riesgo_base": 1,
+    "permiso_requerido": "info",
+    "requiere_identidad": false,
+    "contenido_clinico": false
+  },
+  {
+    "id": "cot",
+    "nombre": "Cotizar un estudio (E02)",
+    "tipo": "solicitud",
+    "probabilidad": 2,
+    "impacto": 2,
+    "riesgo_base": 4,
+    "permiso_requerido": "info",
+    "requiere_identidad": false,
+    "contenido_clinico": false
+  },
+  {
+    "id": "age",
+    "nombre": "Agendar con preparación (E03–E05)",
+    "tipo": "solicitud",
+    "probabilidad": 2,
+    "impacto": 3,
+    "riesgo_base": 6,
+    "permiso_requerido": "agendar",
+    "requiere_identidad": true,
+    "contenido_clinico": true
+  },
+  {
+    "id": "ree",
+    "nombre": "Reenvío de resultados (E08)",
+    "tipo": "solicitud",
+    "probabilidad": 2,
+    "impacto": 4,
+    "riesgo_base": 8,
+    "permiso_requerido": "resultados",
+    "requiere_identidad": true,
+    "contenido_clinico": true
+  },
+  {
+    "id": "fac",
+    "nombre": "Facturar (E09)",
+    "tipo": "solicitud",
+    "probabilidad": 3,
+    "impacto": 2,
+    "riesgo_base": 6,
+    "permiso_requerido": "facturar",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "altT",
+    "nombre": "Darse de alta como tutor de un menor",
+    "tipo": "solicitud",
+    "probabilidad": 2,
+    "impacto": 5,
+    "riesgo_base": 10,
+    "permiso_requerido": "alta",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "altC",
+    "nombre": "Darse de alta como cuidador de un adulto mayor",
+    "tipo": "solicitud",
+    "probabilidad": 2,
+    "impacto": 5,
+    "riesgo_base": 10,
+    "permiso_requerido": "alta",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "acc",
+    "nombre": "Recuperar acceso a la cuenta",
+    "tipo": "solicitud",
+    "probabilidad": 3,
+    "impacto": 2,
+    "riesgo_base": 6,
+    "permiso_requerido": "info",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "mue",
+    "nombre": "Muestra rechazada por preparación · INC-O1-06",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 4,
+    "impacto": 2,
+    "riesgo_base": 8,
+    "permiso_requerido": "agendar",
+    "requiere_identidad": true,
+    "contenido_clinico": true
+  },
+  {
+    "id": "ret",
+    "nombre": "Resultado retrasado · INC-O4-05",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 4,
+    "impacto": 2,
+    "riesgo_base": 8,
+    "permiso_requerido": "info",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "fin",
+    "nombre": "Factura con régimen equivocado · INC-S1-02",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 4,
+    "impacto": 3,
+    "riesgo_base": 12,
+    "permiso_requerido": "facturar",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "dat",
+    "nombre": "Datos incorrectos en la orden · INC-O1-08",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 3,
+    "impacto": 5,
+    "riesgo_base": 15,
+    "permiso_requerido": "corregir",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "env",
+    "nombre": "No llegó el resultado digital · INC-O4-03",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 3,
+    "impacto": 3,
+    "riesgo_base": 9,
+    "permiso_requerido": "resultados",
+    "requiere_identidad": true,
+    "contenido_clinico": true
+  },
+  {
+    "id": "que",
+    "nombre": "Queja formal por espera (E10)",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 3,
+    "impacto": 5,
+    "riesgo_base": 15,
+    "permiso_requerido": "info",
+    "requiere_identidad": true,
+    "contenido_clinico": false
+  },
+  {
+    "id": "cri",
+    "nombre": "Resultado con valor crítico · INC-O4-07",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 4,
+    "impacto": 5,
+    "riesgo_base": 20,
+    "permiso_requerido": "info",
+    "requiere_identidad": false,
+    "contenido_clinico": true
+  },
+  {
+    "id": "eme",
+    "nombre": "Emergencia médica durante el trámite",
+    "tipo": "salida_no_conforme",
+    "probabilidad": 5,
+    "impacto": 5,
+    "riesgo_base": 25,
+    "permiso_requerido": "info",
+    "requiere_identidad": false,
+    "contenido_clinico": true
+  }
+]

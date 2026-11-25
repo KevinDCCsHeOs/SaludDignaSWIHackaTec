@@ -102,6 +102,7 @@ export class OtpService {
   async solicitarOtp(
     entrada: { pacienteId: string; canal: CanalAtencion },
     ip = '127.0.0.1',
+    origen: 'conversacion' | 'externo' = 'conversacion',
   ): Promise<{
     enviado: true;
     canal: CanalAtencion;
@@ -152,7 +153,7 @@ export class OtpService {
     });
 
     if (canal === 'whatsapp' && paciente.telefonoE164) {
-      await despacharOtpWhatsapp(paciente.telefonoE164, codigo, paciente.idioma);
+      await despacharOtpWhatsapp(paciente.telefonoE164, codigo, paciente.idioma, origen);
     }
 
     await this.auditoria.registrar({

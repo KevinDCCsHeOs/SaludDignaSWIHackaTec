@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { CanalAtencion, IdiomaPaciente } from '@salud-digna/shared';
 import { CifradoService } from '../privacidad/cifrado.service';
+import { normalizarTelefonoE164 } from './normalizador';
 
 export interface PacienteRegistro {
   id: string;
@@ -37,6 +38,23 @@ export interface IdentidadCanalRegistro {
  * Repositorio en memoria (con semilla demo ficticia de Ana López) preparado para
  * respaldarse con `PrismaService` cuando la BD MySQL esté conectada.
  */
+/**
+ * Teléfono ficticio de Ana. En la VPS se puede sustituir con `DEMO_TELEFONO_PACIENTE` (el celular
+ * del equipo que opera el demo, registrado como destinatario en Meta) para que WhatsApp la reconozca.
+ * El número real vive solo en `infra/.env.prod`, nunca en el repositorio.
+ */
+function telefonoDemoAna(): string {
+  const configurado = process.env.DEMO_TELEFONO_PACIENTE?.trim();
+  if (configurado) {
+    try {
+      return normalizarTelefonoE164(configurado);
+    } catch {
+      // Valor inválido: se conserva el ficticio
+    }
+  }
+  return '+522221234567';
+}
+
 @Injectable()
 export class PacienteStoreService {
   private readonly pacientes = new Map<string, PacienteRegistro>();
@@ -60,7 +78,7 @@ export class PacienteStoreService {
       curpHash: this.cifrado.hashCurp(curpDemoAna),
       datosFiscalesCifrados: null,
       email: 'ana.lopez@demo.saluddigna.local',
-      telefonoE164: '+522221234567',
+      telefonoE164: telefonoDemoAna(),
       canalPreferido: 'whatsapp',
       idioma: 'es',
       region: 'Puebla',

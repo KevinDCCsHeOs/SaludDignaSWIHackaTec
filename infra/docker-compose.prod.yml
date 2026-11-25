@@ -29,6 +29,10 @@ x-entorno-api: &entorno-api
   LLM_PROVIDER: ${LLM_PROVIDER:-none}
   LLM_API_KEY: ${LLM_API_KEY:-}
   EXPO_PUSH_DESHABILITADO: ${EXPO_PUSH_DESHABILITADO:-0}
+  # El API envía el OTP por WhatsApp (#8) y reconoce a Ana con el celular del demo
+  WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-}
+  WA_PHONE_NUMBER_ID: ${WA_PHONE_NUMBER_ID:-}
+  DEMO_TELEFONO_PACIENTE: ${DEMO_TELEFONO_PACIENTE:-}
 
 services:
   mysql:

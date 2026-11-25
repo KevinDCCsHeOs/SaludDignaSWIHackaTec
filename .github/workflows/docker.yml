@@ -27,6 +27,21 @@ jobs:
       - name: Resolver la configuración con variables de ejemplo
         run: docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod.example config --quiet
 
+      - name: Validar Nginx (nginx -t) con un certificado de prueba
+        run: |
+          DOMINIO=ejemplo.com
+          mkdir -p /tmp/nginx/conf.d "/tmp/le/live/app.$DOMINIO"
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj "/CN=app.$DOMINIO" \
+            -keyout "/tmp/le/live/app.$DOMINIO/privkey.pem" \
+            -out "/tmp/le/live/app.$DOMINIO/fullchain.pem"
+          DOMINIO=$DOMINIO envsubst '${DOMINIO}' \
+            < infra/nginx/templates/default.conf.template > /tmp/nginx/conf.d/default.conf
+          # Sin los demás contenedores: Nginx debe arrancar aunque api, web o el bot no existan
+          docker run --rm \
+            -v /tmp/nginx/conf.d:/etc/nginx/conf.d:ro \
+            -v /tmp/le:/etc/letsencrypt:ro \
+            nginx:1.27-alpine nginx -t
+
   imagen:
     name: Construir imagen (${{ matrix.target }})
     runs-on: ubuntu-latest

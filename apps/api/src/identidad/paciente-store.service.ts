@@ -243,4 +243,11 @@ export class PacienteStoreService {
 
     return { identidadesMovidas };
   }
+
+  actualizarIdioma(pacienteId: string, idioma: IdiomaPaciente): PacienteRegistro | undefined {
+    const paciente = this.buscarPorId(pacienteId);
+    if (!paciente) return undefined;
+    paciente.idioma = idioma;
+    return paciente;
+  }
 }

@@ -1,0 +1,309 @@
+[
+  {
+    "id": 1,
+    "texto": "¿Cuánto cuesta un ultrasonido abdominal?",
+    "intencionEsperada": "cotizar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 2,
+    "texto": "Quiero cotizar una biometría hemática completa",
+    "intencionEsperada": "cotizar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 3,
+    "texto": "¿Cuál es el precio de la química sanguínea de 6 elementos?",
+    "intencionEsperada": "cotizar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 4,
+    "texto": "Necesito presupuesto para una mastografía digital",
+    "intencionEsperada": "cotizar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 5,
+    "texto": "¿Cuánto sale el perfil de lípidos y la glucosa?",
+    "intencionEsperada": "cotizar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 6,
+    "texto": "How much does an abdominal ultrasound cost?",
+    "intencionEsperada": "cotizar",
+    "idiomaEsperado": "en"
+  },
+  {
+    "id": 7,
+    "texto": "Can I get a quote for a blood test?",
+    "intencionEsperada": "cotizar",
+    "idiomaEsperado": "en"
+  },
+
+  {
+    "id": 8,
+    "texto": "Quiero agendar una cita para mañana a las 9:00",
+    "intencionEsperada": "agendar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 9,
+    "texto": "Necesito sacar cita en Salud Digna Puebla Centro",
+    "intencionEsperada": "agendar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 10,
+    "texto": "¿Qué horarios disponibles tienen para ultrasonido pélvico?",
+    "intencionEsperada": "agendar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 11,
+    "texto": "Quisiera reagendar mi cita para el viernes",
+    "intencionEsperada": "agendar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 12,
+    "texto": "Quiero confirmar mi cita de mañana 11:30",
+    "intencionEsperada": "agendar",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 13,
+    "texto": "I want to schedule an appointment for tomorrow at 10:00",
+    "intencionEsperada": "agendar",
+    "idiomaEsperado": "en"
+  },
+  {
+    "id": 14,
+    "texto": "Can I book an X-ray appointment?",
+    "intencionEsperada": "agendar",
+    "idiomaEsperado": "en"
+  },
+
+  {
+    "id": 15,
+    "texto": "¿Cómo va mi trámite SD-2026-000001?",
+    "intencionEsperada": "estatus",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 16,
+    "texto": "Quiero saber el estatus de mi cotización pendiente",
+    "intencionEsperada": "estatus",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 17,
+    "texto": "¿En qué paso me quedé con mi estudio?",
+    "intencionEsperada": "estatus",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 18,
+    "texto": "Necesito seguimiento de mi folio TK-2026-000010",
+    "intencionEsperada": "estatus",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 19,
+    "texto": "Quiero retomar mi trámite donde lo dejé en la web",
+    "intencionEsperada": "estatus",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 20,
+    "texto": "What is the status of my pending process?",
+    "intencionEsperada": "estatus",
+    "idiomaEsperado": "en"
+  },
+
+  {
+    "id": 21,
+    "texto": "¿Ya están listos mis resultados de laboratorio?",
+    "intencionEsperada": "resultados",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 22,
+    "texto": "Quiero descargar mi resultado en PDF",
+    "intencionEsperada": "resultados",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 23,
+    "texto": "¿Cuándo salen mis resultados del perfil tiroideo?",
+    "intencionEsperada": "resultados",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 24,
+    "texto": "No encuentro dónde ver mis resultados",
+    "intencionEsperada": "resultados",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 25,
+    "texto": "Are my lab results ready yet?",
+    "intencionEsperada": "resultados",
+    "idiomaEsperado": "en"
+  },
+  {
+    "id": 26,
+    "texto": "How can I download my results?",
+    "intencionEsperada": "resultados",
+    "idiomaEsperado": "en"
+  },
+
+  {
+    "id": 27,
+    "texto": "¿Dónde está la clínica Salud Digna Puebla Centro?",
+    "intencionEsperada": "ubicacion",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 28,
+    "texto": "Pásame la dirección y el mapa de la clínica Angelópolis",
+    "intencionEsperada": "ubicacion",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 29,
+    "texto": "¿Cuál es la sucursal más cercana en Monterrey?",
+    "intencionEsperada": "ubicacion",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 30,
+    "texto": "¿A qué hora abren la clínica de Coyoacán?",
+    "intencionEsperada": "ubicacion",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 31,
+    "texto": "¿Cómo llego a la clínica de Buenavista?",
+    "intencionEsperada": "ubicacion",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 32,
+    "texto": "Where is the nearest clinic in CDMX?",
+    "intencionEsperada": "ubicacion",
+    "idiomaEsperado": "en"
+  },
+
+  {
+    "id": 33,
+    "texto": "Quiero poner una queja por el mal trato en recepción",
+    "intencionEsperada": "queja",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 34,
+    "texto": "Pésimo servicio, me hicieron esperar dos horas",
+    "intencionEsperada": "queja",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 35,
+    "texto": "Estoy muy molesta porque hubo un cobro doble",
+    "intencionEsperada": "queja",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 36,
+    "texto": "Tengo un reclamo por un error en el servicio",
+    "intencionEsperada": "queja",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 37,
+    "texto": "Me trataron mal en la clínica y quiero una inconformidad",
+    "intencionEsperada": "queja",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 38,
+    "texto": "I want to file a complaint about terrible service",
+    "intencionEsperada": "queja",
+    "idiomaEsperado": "en"
+  },
+
+  {
+    "id": 39,
+    "texto": "No puedo entrar a mi cuenta",
+    "intencionEsperada": "acceso",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 40,
+    "texto": "Olvidé mi contraseña y no puedo iniciar sesión",
+    "intencionEsperada": "acceso",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 41,
+    "texto": "Necesito recuperar mi acceso a la app",
+    "intencionEsperada": "acceso",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 42,
+    "texto": "Me dice contraseña incorrecta al entrar al portal",
+    "intencionEsperada": "acceso",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 43,
+    "texto": "I forgot my password and can't log in",
+    "intencionEsperada": "acceso",
+    "idiomaEsperado": "en"
+  },
+  {
+    "id": 44,
+    "texto": "I am locked out of my account, help me reset password",
+    "intencionEsperada": "acceso",
+    "idiomaEsperado": "en"
+  },
+
+  {
+    "id": 45,
+    "texto": "Tengo dolor de pecho muy fuerte y sudoración",
+    "intencionEsperada": "urgencia",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 46,
+    "texto": "No puedo respirar bien y me siento mareado",
+    "intencionEsperada": "urgencia",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 47,
+    "texto": "Tengo un sangrado intenso que no para",
+    "intencionEsperada": "urgencia",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 48,
+    "texto": "Mi papá sufrió un desmayo hace unos minutos",
+    "intencionEsperada": "urgencia",
+    "idiomaEsperado": "es"
+  },
+  {
+    "id": 49,
+    "texto": "I have severe chest pain right now",
+    "intencionEsperada": "urgencia",
+    "idiomaEsperado": "en"
+  },
+  {
+    "id": 50,
+    "texto": "Help, I can't breathe and feel like fainting",
+    "intencionEsperada": "urgencia",
+    "idiomaEsperado": "en"
+  }
+]

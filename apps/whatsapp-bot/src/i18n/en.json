@@ -40,7 +40,8 @@
     "resultadosInfo": "Clinical results are released after technical review and medical validation. We will notify you here and in the app.",
     "cotizarGuia": "Tell me which exam you need (ultrasound, lab, X-ray, etc.).",
     "interrupcionRetorno": "Done. Would you like to return to where you left off?",
-    "escaladoAsesor": "Connecting you with a human advisor now. Ticket: {{folio}} (estimated wait: 3 min). You will not need to repeat your details."
+    "escaladoAsesor": "Connecting you with a human advisor now. Ticket: {{folio}} (estimated wait: 3 min). You will not need to repeat your details.",
+    "urgencia911": "EMERGENCY ALERT: If you have chest pain, difficulty breathing, heavy bleeding, or fainting, call 911 immediately or go to the nearest ER. We also alerted our team (ticket {{folio}})."
   },
   "recuperacion": {
     "opcionMenu": "I cannot access my account",

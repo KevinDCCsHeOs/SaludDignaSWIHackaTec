@@ -1,0 +1,54 @@
+{
+  "saludo": {
+    "pedirOtp": "¡Niltze! Cualli tonalli. Ica tlapalehuilistli otictitlanqueh se código de 6 números (OTP). Xiquihcuilo nican para ticoncahuas.",
+    "otpInvalido": "Inon código amo cualli noso otlamito. Xiquihcuilo \"nuevo código\".",
+    "bienvenidaNuevo": "¡Niltze! Cualli tonalli. Nitlahtoa Salud Digna tlapalehuiani. ¿Tlen timonequi axcan?",
+    "ambiguo": "Ticpiah miac amoxtli ica inin número. Nimitzpalehuia ihuan se asesor humano.",
+    "retomarTramite": "¡Tlazohcamati, {{nombre}}! Ticpia pendiente {{estudio}} itech {{clinica}}. ¿Ticnequi ticoncahuas?",
+    "sinTramiteActivo": "¡Tlazohcamati, {{nombre}}! ¿Tlen timonequi axcan?"
+  },
+  "botones": {
+    "siContinuar": "Quema, continuar",
+    "otraCosa": "Ocse tlamantli",
+    "hablarAsesor": "Asesor humano",
+    "manana9": "Mostla 9:00",
+    "manana1130": "Mostla 11:30",
+    "verMas": "Ocse horarios",
+    "volverTramite": "Nocuepas trámite",
+    "verMenu": "Menú"
+  },
+  "menu": {
+    "titulo": "Menú (Náhuatl)",
+    "cuerpo": "¡Niltze! Xipehpena se opción itech Salud Digna:",
+    "botonLista": "Tlamantli / Opciones",
+    "opciones": {
+      "cotizar": "Cotizar estudio (precio)",
+      "agendar": "Agendar cita",
+      "estatus": "Estatus de trámite",
+      "resultados": "Resultados",
+      "ubicacion": "Campa cah clínica",
+      "recuperar": "Recuperar cuenta",
+      "asesor": "Asesor humano"
+    }
+  },
+  "flujo": {
+    "elegirHorario": "¿Catleh tonalli ihuan hora ticnequi para mocita?",
+    "citaAgendada": "¡Cualli! Mocita omochiuh para {{fecha}} itech {{clinica}} (folio {{folio}}, código {{codigo}}).",
+    "ubicacionEnviada": "Nican cah ubicación de {{clinica}}: {{direccion}}.",
+    "estatusSinTramite": "Amo ticpia trámite activo axcan. ¿Ticnequi ticotizaros se estudio?",
+    "estatusResumen": "Estatus: {{resumen}}",
+    "resultadosInfo": "Resultados motemacah zatepan revisión médica. Timitzilhuisqueh nican ihuan itech app.",
+    "cotizarGuia": "Xiquihcuilo itoca in estudio (ultrasonido, laboratorio, rayos X).",
+    "interrupcionRetorno": "Cualli. ¿Ticnequi tinocuepas itech motrámite?",
+    "escaladoAsesor": "Nimitzpalehuia ihuan se asesor humano axcan. Folio: {{folio}} (espera: ~3 min). Amo monequi tiquilnamiquis moamox.",
+    "urgencia911": "TLAHTOLTEQUIPACHOLISTLI (EMERGENCIA): Tla timococoa chicahuac (dolor de pecho, amo tihueli tihiyotia noso sangrado), xitlanotza niman 911."
+  },
+  "recuperacion": {
+    "opcionMenu": "Recuperar cuenta",
+    "pedirOtp": "Otictitlanqueh se código de 6 números itech moWhatsApp. Xiquihcuilo nican.",
+    "enlaceEnviado": "Tlazohcamati. Otictitlanqueh enlace seguro (30 min) para mocontraseña.",
+    "casoAmbiguo": "Ticpiah miac perfiles. Nimitzpalehuia ihuan se asesor humano.",
+    "noEncontrado": "Amo omonexti cuenta ica inin número. Nimitzpalehuia ihuan se asesor.",
+    "errorOtp": "Inon código amo cualli noso otlamito."
+  }
+}

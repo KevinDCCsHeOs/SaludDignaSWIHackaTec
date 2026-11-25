@@ -297,6 +297,10 @@ export class TramitesService implements OnModuleInit {
     return this.listarPorPaciente(pacienteId, true)[0];
   }
 
+  listarTodosActivos(): TramiteRegistro[] {
+    return [...this.tramites.values()].filter((t) => !esEstadoTerminal(t.estado));
+  }
+
   async crear(
     entrada: z.input<typeof CrearTramiteSchema>,
     actor: { tipo: TipoActor; id: string },

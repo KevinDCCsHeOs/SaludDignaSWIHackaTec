@@ -6,6 +6,8 @@ export type PasoDialogoWa =
   | 'menu_principal'
   | 'recuperacion_otp';
 
+export type IdiomaBotWa = 'es' | 'en' | 'nah';
+
 export interface SesionDialogoWa {
   telefono: string;
   pacienteId: string | null;
@@ -14,7 +16,7 @@ export interface SesionDialogoWa {
   clinicaId: string | null;
   paso: PasoDialogoWa;
   pasoInterrumpido: PasoDialogoWa | null;
-  idioma: 'es' | 'en';
+  idioma: IdiomaBotWa;
   ultimoMensajeEn: string;
 }
 

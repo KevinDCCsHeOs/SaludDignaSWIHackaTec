@@ -40,7 +40,8 @@
     "resultadosInfo": "Tus resultados clínicos se liberan tras revisión técnica y validación médica. Cuando estén listos te avisaremos aquí y en la app.",
     "cotizarGuia": "Puedes cotizar cualquiera de nuestros estudios (ultrasonido, laboratorio, rayos X y más). Escribe el nombre del estudio que buscas.",
     "interrupcionRetorno": "Listo. Cuando gustes, ¿regresamos a donde te quedaste en tu trámite?",
-    "escaladoAsesor": "Te conecto con un asesor humano ahora mismo. Folio de seguimiento: {{folio}} (espera estimada: 3 min). No tendrás que repetir tus datos."
+    "escaladoAsesor": "Te conecto con un asesor humano ahora mismo. Folio de seguimiento: {{folio}} (espera estimada: 3 min). No tendrás que repetir tus datos.",
+    "urgencia911": "ALERTA DE EMERGENCIA: Si presentas dolor de pecho, dificultad para respirar, sangrado intenso o desmayo, llama de inmediato al 911 o acude a urgencias. También alertamos a nuestro equipo (folio {{folio}})."
   },
   "recuperacion": {
     "opcionMenu": "No puedo entrar a mi cuenta",

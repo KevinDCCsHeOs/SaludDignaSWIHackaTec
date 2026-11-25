@@ -50,6 +50,8 @@
     "seleccionar": "Elegir y continuar",
     "guardando": "Guardando avance...",
     "preparacion": "Preparación",
+    "explicameFacil": "Explícame fácil",
+    "verOriginal": "Ver texto original",
     "tituloClinicas": "Elige tu clínica",
     "subtituloClinicas": "En cuanto seleccionas una clínica, guardamos tu progreso automáticamente. Si cierras la pestaña, podrás retomarlo en WhatsApp.",
     "todasRegiones": "Todas las regiones",
@@ -80,6 +82,7 @@
     "bienvenida": "¡Hola! Puedo ayudarte con cotizaciones, estatus de trámites, preparación o conectarte con un asesor. (Nunca diagnostico ni receto).",
     "placeholder": "Escribe tu duda o \"asesor\"...",
     "enviar": "Enviar",
+    "modoFacil": "Explícame fácil",
     "respuestaDefault": "Gracias por escribir. Puedes iniciar o retomar tu cotización desde el menú, o escribir \"asesor\" para abrir un ticket con el Contact Center.",
     "respuestaUrgencia": "Si presentas síntomas de alarma (dolor de pecho, dificultad para respirar o sangrado intenso), llama de inmediato al 911."
   },

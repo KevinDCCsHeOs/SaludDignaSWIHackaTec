@@ -43,4 +43,4 @@ jobs:
         working-directory: apps/mobile
         env:
           EXPO_PUBLIC_API_URL: https://api.saluddigna-omnicanal.tech
-        run: npx expo export --platform android --output-dir /tmp/bundle-android
+        run: npx expo export --platform android --output-dir dist-android
